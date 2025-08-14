@@ -40,42 +40,32 @@ def run_training_workflow(args):
     Execute the training workflow with MLflow logging.
     This function contains the actual training logic that was previously in the mlflow.start_run() context.
     """
-    # Log custom parameters for this training run (with error handling)
-    try:
-        mlflow.log_param("training_data_path", args.training_data)
-        mlflow.log_param("reg_rate", args.reg_rate)
-        mlflow.log_param("regularization_C", 1/args.reg_rate)
-    except Exception as e:
-        print(f"Warning: Could not log initial parameters: {e}")
-        print("Continuing with training...")
+    # Log custom parameters for this training run
+    mlflow.log_param("training_data_path", args.training_data)
+    mlflow.log_param("reg_rate", args.reg_rate)
+    mlflow.log_param("regularization_C", 1/args.reg_rate)
 
     # Load and prepare data
     print(f"Training data path: {args.training_data}")
     df = get_csvs_df(args.training_data)
 
     # Log dataset information for tracking
-    try:
-        mlflow.log_param("total_samples", len(df))
-        mlflow.log_param("total_features", len(df.columns))
-        
-        # Analyze and log class distribution (important for imbalanced datasets)
-        class_counts = df['Diabetic'].value_counts().sort_index()
-        mlflow.log_param("class_0_count", class_counts[0])
-        mlflow.log_param("class_1_count", class_counts[1])
-        mlflow.log_param("class_balance_ratio", class_counts[1]/class_counts[0])
-    except Exception as e:
-        print(f"Warning: Could not log dataset parameters: {e}")
+    mlflow.log_param("total_samples", len(df))
+    mlflow.log_param("total_features", len(df.columns))
+    
+    # Analyze and log class distribution (important for imbalanced datasets)
+    class_counts = df['Diabetic'].value_counts().sort_index()
+    mlflow.log_param("class_0_count", class_counts[0])
+    mlflow.log_param("class_1_count", class_counts[1])
+    mlflow.log_param("class_balance_ratio", class_counts[1]/class_counts[0])
     
     # Split data into training and testing sets
     X_train, X_test, y_train, y_test = split_data(df)
 
     # Log data split information
-    try:
-        mlflow.log_param("train_samples", len(X_train))
-        mlflow.log_param("test_samples", len(X_test))
-        mlflow.log_param("test_size_ratio", 0.30)
-    except Exception as e:
-        print(f"Warning: Could not log split parameters: {e}")
+    mlflow.log_param("train_samples", len(X_train))
+    mlflow.log_param("test_samples", len(X_test))
+    mlflow.log_param("test_size_ratio", 0.30)
 
     # Train the logistic regression model
     model = train_model(args.reg_rate, X_train, X_test, y_train, y_test)
@@ -88,11 +78,8 @@ def run_training_workflow(args):
     test_accuracy = accuracy_score(y_test, y_pred)
     test_auc = roc_auc_score(y_test, y_pred_proba)
     
-    try:
-        mlflow.log_metric("test_accuracy", test_accuracy)
-        mlflow.log_metric("test_auc", test_auc)
-    except Exception as e:
-        print(f"Warning: Could not log metrics: {e}")
+    mlflow.log_metric("test_accuracy", test_accuracy)
+    mlflow.log_metric("test_auc", test_auc)
     
     # Print results summary
     print(f"Model trained successfully!")
@@ -219,13 +206,9 @@ if __name__ == "__main__":
     # Parse command line arguments
     args = parse_args()
     
-    # Set MLflow experiment (creates if doesn't exist)
-    try:
-        mlflow.set_experiment(args.experiment_name)
-        print(f"MLflow Experiment: {args.experiment_name}")
-    except Exception as e:
-        print(f"Warning: Could not set experiment name, using default. Error: {e}")
-        # Continue without setting experiment name
+    # In Azure ML, experiment is automatically set via job.yml
+    # Don't manually set experiment - let Azure ML manage it
+    print(f"Azure ML will use experiment from job.yml: {args.experiment_name}")
 
     # Run main training function
     main(args)

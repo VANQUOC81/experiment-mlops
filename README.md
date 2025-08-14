@@ -274,49 +274,222 @@ mlflow ui
 
 # 🔀 Switching Between Azure ML and Local MLflow
 
-## Azure ML → Local MLflow
+## ⚠️ **Critical Understanding: Two Incompatible Modes**
 
-### 1. Modify `train.py`
+Your `train.py` script can operate in **two mutually exclusive modes**:
+
+1. **🌩️ Azure ML Mode**: Designed for Azure ML jobs (current configuration)
+2. **🏠 Local MLflow Mode**: Designed for local development with manual MLflow
+
+**You CANNOT mix these modes** - each requires specific configuration changes.
+
+---
+
+## 🌩️ **Current Configuration: Azure ML Mode**
+
+### **How It Works:**
+- ✅ **No tracking URI**: Azure ML automatically configures MLflow
+- ✅ **No manual runs**: Azure ML creates and manages runs
+- ✅ **No experiment setting**: Experiment comes from `job.yml`
+- ✅ **Direct logging**: All `mlflow.log_param()` and `mlflow.log_metric()` calls work directly
+
+### **Key Code Characteristics:**
 ```python
-# Uncomment this line for local development
-mlflow.set_tracking_uri("file:./mlruns")
+# Line 16: Tracking URI is commented out
+# mlflow.set_tracking_uri("file:./mlruns")  # Only for local runs
 
-# Change main function to use manual run management
+# Lines 34-36: No manual run management
+def main(args):
+    mlflow.sklearn.autolog()
+    # Azure ML automatically manages MLflow runs, so we don't need to start one manually
+    run_training_workflow(args)
+
+# Lines 222-224: No experiment setting
+# In Azure ML, experiment is automatically set via job.yml
+print(f"Azure ML will use experiment from job.yml: {args.experiment_name}")
+```
+
+### **Why This Works in Azure ML:**
+- Azure ML automatically starts an MLflow run with ID matching the job name
+- All MLflow logging calls work within this managed run context
+- Experiment name comes from `job.yml` configuration
+- Results appear in Azure ML Studio under **Metrics** tab
+
+---
+
+## 🏠 **Converting to Local MLflow Mode**
+
+### **⚠️ WARNING: This Will Break Azure ML Jobs**
+
+If you make these changes, submitting to Azure ML will fail with experiment/run ID conflicts.
+
+### **Required Changes to `src/model/train.py`:**
+
+#### **1. Enable Local Tracking URI (Line 16):**
+```python
+# FOR LOCAL: Uncomment this line
+mlflow.set_tracking_uri("file:./mlruns")
+```
+
+#### **2. Add Manual Run Management (Lines 34-36):**
+```python
 def main(args):
     mlflow.sklearn.autolog()
     
-    # For local: manually start runs
+    # FOR LOCAL: Manually manage MLflow runs
     with mlflow.start_run():
         run_training_workflow(args)
 ```
 
-### 2. Run Locally
-```powershell
-python .\src\model\train.py --training_data .\experimentation\data
+#### **3. Enable Experiment Setting (Lines 222-224):**
+```python
+# FOR LOCAL: Manually set experiment
+try:
+    mlflow.set_experiment(args.experiment_name)
+    print(f"MLflow Experiment: {args.experiment_name}")
+except Exception as e:
+    print(f"Warning: Could not set experiment name, using default. Error: {e}")
 ```
 
-## Local MLflow → Azure ML
-
-### 1. Revert `train.py`
+### **Complete Local Configuration:**
 ```python
-# Comment out for Azure ML
-# mlflow.set_tracking_uri("file:./mlruns")
+# src/model/train.py - LOCAL CONFIGURATION
 
-# Let Azure ML manage runs automatically
+# Enable local tracking
+mlflow.set_tracking_uri("file:./mlruns")
+
 def main(args):
     mlflow.sklearn.autolog()
     
-    # For Azure ML: no manual run management
-    run_training_workflow(args)
+    # Manually manage runs for local development
+    with mlflow.start_run():
+        run_training_workflow(args)
+
+# In main execution block:
+if __name__ == "__main__":
+    args = parse_args()
+    
+    # Set experiment manually for local
+    mlflow.set_experiment(args.experiment_name)
+    print(f"MLflow Experiment: {args.experiment_name}")
+    
+    main(args)
 ```
 
-### 2. Submit to Azure ML
+### **Run Locally:**
+```powershell
+# Train with local MLflow
+python .\src\model\train.py --training_data .\experimentation\data
+
+# Start MLflow UI to view results
+mlflow ui
+# Open: http://127.0.0.1:5000
+```
+
+---
+
+## ❌ **Why Each Configuration Breaks in Wrong Context**
+
+### **Azure ML Configuration Fails Locally:**
+```bash
+# Error when running locally with Azure ML config:
+AttributeError: 'NoneType' object has no attribute 'info'
+# Because mlflow.active_run() returns None without manual run management
+```
+
+### **Local Configuration Fails in Azure ML:**
+```bash
+# Error when submitting to Azure ML with local config:
+MlflowException: Cannot start run with ID <job_name> because active run ID 
+does not match environment run ID. Make sure --experiment-name or 
+--experiment-id matches experiment set with set_experiment()
+```
+
+**Root Cause**: Azure ML automatically creates runs and sets experiments, but local config tries to create its own, causing ID conflicts.
+
+---
+
+## 🔄 **Step-by-Step Mode Switching**
+
+### **Azure ML → Local MLflow**
+
+#### **Step 1: Modify `train.py` for Local**
+```python
+# 1. Uncomment tracking URI (line 16)
+mlflow.set_tracking_uri("file:./mlruns")
+
+# 2. Add manual run management (lines 34-36)
+def main(args):
+    mlflow.sklearn.autolog()
+    with mlflow.start_run():  # Add this wrapper
+        run_training_workflow(args)
+
+# 3. Enable experiment setting (lines 222-224)
+mlflow.set_experiment(args.experiment_name)
+print(f"MLflow Experiment: {args.experiment_name}")
+```
+
+#### **Step 2: Test Locally**
+```powershell
+python .\src\model\train.py --training_data .\experimentation\data
+mlflow ui
+```
+
+#### **Step 3: ⚠️ DO NOT Submit to Azure ML**
+This configuration will fail if submitted as an Azure ML job.
+
+### **Local MLflow → Azure ML**
+
+#### **Step 1: Revert `train.py` for Azure ML**
+```python
+# 1. Comment out tracking URI (line 16)
+# mlflow.set_tracking_uri("file:./mlruns")  # Only for local runs
+
+# 2. Remove manual run management (lines 34-36)
+def main(args):
+    mlflow.sklearn.autolog()
+    # No with mlflow.start_run(): wrapper
+    run_training_workflow(args)
+
+# 3. Disable experiment setting (lines 222-224)
+print(f"Azure ML will use experiment from job.yml: {args.experiment_name}")
+# No mlflow.set_experiment() call
+```
+
+#### **Step 2: Submit to Azure ML**
 ```powershell
 az ml job create \
   --file src/job.yml \
   --resource-group <your-resource-group> \
   --workspace-name <your-workspace-name>
 ```
+
+#### **Step 3: ⚠️ DO NOT Run Locally**
+This configuration will fail if run locally without Azure ML.
+
+---
+
+## 🎯 **Best Practice: Choose One Mode**
+
+### **For Learning/Development:**
+- **Use Azure ML Mode** (current configuration)
+- Submit jobs to Azure ML for training
+- View results in Azure ML Studio
+- Learn cloud MLOps practices
+
+### **For Production MLOps:**
+- **Use Azure ML Mode** (current configuration)
+- Integrate with CI/CD pipelines
+- Use Azure ML for model deployment
+- Leverage enterprise features
+
+### **For Local Experimentation Only:**
+- **Use Local MLflow Mode**
+- Quick iteration and debugging
+- Local MLflow UI for experiment tracking
+- No cloud dependencies
+
+**Recommendation**: Stick with **Azure ML Mode** since you're learning MLOps and want to see metrics in Azure ML Studio! 🚀
 
 ---
 
