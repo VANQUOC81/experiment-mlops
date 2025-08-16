@@ -1,12 +1,30 @@
+# Schema for the job definition (required for Azure ML jobs)
 $schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+
+# Path to the code directory containing the training script
 code: ./model
+
+# Command to execute the training script with input parameters
 command: python train.py --training_data ${{inputs.training_data}} --reg_rate ${{inputs.reg_rate}}
+
+# Inputs for the job
 inputs:
   training_data:
-    type: uri_folder
-    path: azureml:diabetes-dev-folder@latest
-  reg_rate: 0.01
+    type: uri_folder  # Type of input (folder containing CSV files)
+    path: azureml:diabetes-dev-folder@latest  # Path to the registered data asset in Azure ML
+  reg_rate: 0.01  # Regularization rate for the logistic regression model
+
+# Environment to use for the job (predefined Azure ML environment)
 environment: azureml:AzureML-sklearn-0.24-ubuntu18.04-py37-cpu@latest
-compute: azureml:my-compute-instance
+
+# Compute target for the job
+# Note: We use a compute cluster (my-compute-cluster) instead of the previous compute instance (my-compute-instance) because:
+# 1. Service principals can only submit jobs to compute clusters, not compute instances.
+# 2. Compute clusters are more scalable and cost-effective for automated workflows.
+compute: azureml:my-compute-cluster
+
+# Experiment name for tracking the job in Azure ML
 experiment_name: diabetes-prediction
-description: Train a diabetes prediction model using logistic regression with MLflow tracking 
+
+# Description of the job
+description: Train a diabetes prediction model using logistic regression with MLflow tracking
