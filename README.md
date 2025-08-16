@@ -1,33 +1,94 @@
 # Diabetes Prediction MLOps Project
 
-This project demonstrates MLOps practices for training and tracking machine learning models using Azure Machine Learning, Python, scikit-learn, and MLflow. It supports both **Azure ML Cloud** and **Local MLflow** workflows.
+This project demonstrates MLOps practices for training and tracking machine learning models using Azure Machine Learning, Python, scikit-learn, and MLflow. It supports three workflows:
+- **GitHub Actions with Azure ML**: Automated cloud training via GitHub
+- **Azure ML Direct**: Manual cloud training via Azure CLI
+- **Local MLflow**: Traditional local development
 
 ## 🏗️ Project Structure
 
 ```
 experiment-mlops/
+├── .github/
+│   └── workflows/
+│       └── 02-manual-trigger-job.yml  # GitHub Actions workflow
 ├── src/
 │   ├── model/
-│   │   └── train.py          # Main training script with MLflow tracking
-│   └── job.yml              # Azure ML job configuration
+│   │   └── train.py                   # Main training script with MLflow tracking
+│   └── job.yml                       # Azure ML job configuration
 ├── experimentation/
-│   └── data/                # Development dataset (diabetes-dev.csv)
+│   └── data/                         # Development dataset (diabetes-dev.csv)
 ├── production/
-│   └── data/                # Production dataset (diabetes-prod.csv)
-├── tests/                   # Unit tests
-├── requirements.txt         # Python dependencies
-├── mlruns/                 # Local MLflow tracking directory
-└── README.md               # This file
+│   └── data/                         # Production dataset (diabetes-prod.csv)
+├── tests/                            # Unit tests
+├── requirements.txt                  # Python dependencies
+├── mlruns/                          # Local MLflow tracking directory
+└── README.md                        # This file
 ```
 
 ## 🚀 Quick Start Options
 
-### Option A: Azure Machine Learning (Cloud)
-### Option B: Local MLflow (Traditional)
+### Option A: GitHub Actions with Azure ML (Recommended)
+### Option B: Azure ML Direct (Alternative Cloud)
+### Option C: Local MLflow (Traditional)
 
 ---
 
-# 🌩️ Azure Machine Learning Workflow
+# 🤖 GitHub Actions with Azure ML (Recommended)
+
+## Prerequisites
+
+1. **Azure Resources**:
+   - Azure ML workspace
+   - Azure service principal with contributor access
+   - Compute cluster (for automated training)
+   - Registered data assets
+
+2. **GitHub Setup**:
+   - Fork/clone this repository
+   - Create `AZURE_CREDENTIALS` secret
+
+## 🔑 Service Principal Setup
+
+### 1. Create Service Principal
+```powershell
+# Create service principal with contributor access
+az ad sp create-for-rbac --name "mlops-github-sp" --role contributor \
+    --scopes /subscriptions/<subscription-id>/resourceGroups/<resource-group> \
+    --sdk-auth
+```
+
+### 2. Create GitHub Secret
+1. Go to repository → **Settings** → **Secrets and variables** → **Actions**
+2. Create new secret named `AZURE_CREDENTIALS`
+3. Paste the entire JSON output from service principal creation
+
+## ⚙️ Compute Cluster Setup
+
+1. **Azure ML Studio**: Navigate to **Compute** → **Compute clusters**
+2. Click **New**
+3. Configure:
+   - Name: `my-compute-cluster`
+   - VM Size: `Standdjust based on needs)
+4. Enable **Idle seconds befoard_DS3_v2` (recommended)
+   - Min nodes: `0` (scales to zero when idle)
+   - Max nodes: `1` (are scale down**
+
+## 📊 Data Asset Registration
+Same as Azure ML Direct workflow below.
+
+## 🚀 Trigger Training
+
+### Manual Trigger
+1. Go to **Actions** → **Manually trigger an Azure Machine Learning job**
+2. Click **Run workflow**
+3. Monitor progress in GitHub Actions and Azure ML Studio
+
+### View Results
+- GitHub Actions: See workflow run logs
+- Azure ML Studio: View detailed metrics and artifacts
+
+# 🌩️ Azure ML Direct Workflow (Alternative)
 
 ## Prerequisites
 
@@ -524,6 +585,33 @@ From the diabetes prediction model:
 
 # 🛠️ Troubleshooting
 
+## GitHub Actions Issues
+
+### Authentication Failed
+```bash
+# Check if AZURE_CREDENTIALS secret is:
+1. Named exactly "AZURE_CREDENTIALS"
+2. Contains complete JSON output from service principal creation
+3. Service principal has contributor access
+```
+
+### Compute Cluster Issues
+```bash
+# Common issues:
+1. Using compute instance instead of cluster
+2. Cluster name mismatch in job.yml
+3. Cluster not scaling up (check quota limits)
+```
+
+### Job Submission Failed
+```bash
+# Verify in this order:
+1. Resource group and workspace names in workflow
+2. Data asset registration
+3. Compute cluster status
+4. Service principal permissions
+```
+
 ## Azure CLI Issues
 
 ### 32-bit vs 64-bit CLI
@@ -683,12 +771,30 @@ pip install -r requirements.txt
 
 You have successfully completed this MLOps workflow when you can:
 
-1. ✅ **Register data assets** in Azure ML
-2. ✅ **Submit training jobs** via Azure CLI
-3. ✅ **Monitor job execution** in Azure ML Studio
-4. ✅ **View training metrics** and results
-5. ✅ **Switch between Azure ML and local MLflow** workflows
-6. ✅ **Re-run experiments** with different parameters
+1. ✅ **Set up GitHub Actions**:
+   - Create and configure service principal
+   - Set up GitHub secrets
+   - Configure compute cluster
+
+2. ✅ **Manage Azure Resources**:
+   - Register data assets in Azure ML
+   - Configure compute options (cluster/instance)
+   - Monitor resource usage and costs
+
+3. ✅ **Submit Training Jobs** via:
+   - GitHub Actions (recommended)
+   - Azure CLI (alternative)
+   - Local MLflow (development)
+
+4. ✅ **Monitor and Track**:
+   - GitHub Actions workflow runs
+   - Azure ML Studio jobs
+   - MLflow experiments and metrics
+
+5. ✅ **Switch Between Modes**:
+   - GitHub Actions workflow
+   - Direct Azure ML submission
+   - Local MLflow development
 
 **Congratulations!** You've implemented a complete MLOps pipeline with Azure Machine Learning! 🚀
 
