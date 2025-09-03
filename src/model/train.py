@@ -183,7 +183,7 @@ def parse_args():
     
     # Optional arguments
     parser.add_argument("--reg_rate", dest='reg_rate',
-                        type=float, default=0.1,
+                        type=float, default=0.05,
                         help="Regularization rate (higher = more regularization)")
     parser.add_argument("--experiment_name", dest='experiment_name',
                         type=str, default="diabetes_prediction",
