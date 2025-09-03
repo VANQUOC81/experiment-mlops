@@ -1,0 +1,19 @@
+name: Pull Request Code Verification
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  code-verification:
+    name: Code Verification
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repo
+      uses: actions/checkout@v4
+    - name: Placeholder
+      run: |
+        echo "Will add code checks here in next challenge"
+        echo "Pull request verification workflow is working!"
+        echo "Branch: ${{ github.head_ref }}"
+        echo "Base branch: ${{ github.base_ref }}"
