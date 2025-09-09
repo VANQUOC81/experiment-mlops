@@ -883,6 +883,7 @@ You have successfully completed this MLOps workflow when you can:
 - `mlflow>=2.14.1`: Experiment tracking and model management
 - `pandas>=2.1.0`: Data manipulation
 - `scikit-learn==1.7.0`: Machine learning library
+- `autopep8>=2.3.0`: Auto formatting 'autopep8 --in-place --aggressive --aggressive src/model/train.py'
 
 ## Contributing
 

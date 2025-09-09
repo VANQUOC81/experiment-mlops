@@ -42,7 +42,8 @@ def main(args):
 def run_training_workflow(args):
     """
     Execute the training workflow with MLflow logging.
-    This function contains the actual training logic that was previously in the mlflow.start_run() context.
+    This function contains the actual training logic that 
+    was previously in the mlflow.start_run() context.
     """
     # Log custom parameters for this training run
     mlflow.log_param("training_data_path", args.training_data)
