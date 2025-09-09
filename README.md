@@ -26,6 +26,85 @@ experiment-mlops/
 └── README.md                        # This file
 ```
 
+# ALWAYS WORK FROM PYTHON VIRTUAL ENVIRONMENT AND DEACTIVATE ONCE DONE!!! 
+
+## 📋 Daily Development Workflow
+
+### 🚀 Starting Development (First Time Setup)
+```bash
+# 1. Clone repository and navigate to project
+git clone <repository-url>
+cd experiment-mlops
+
+# 2. Create feature branch (no virtual environment needed)
+git checkout -b feature/your-feature-name
+
+# 3. Create virtual environment
+python -m venv venv
+
+# 4. Activate virtual environment
+.\venv\Scripts\Activate.ps1
+
+# 5. Install dependencies (needs virtual environment)
+pip install -r requirements.txt
+
+# 6. Verify setup (needs virtual environment)
+python -m pytest -v
+```
+
+### 🌅 Daily Start (Continuing Development)
+```bash
+# 1. Navigate to project
+cd D:\Projects\Github\experiment-mlops
+
+# 2. Activate virtual environment
+.\venv\Scripts\Activate.ps1
+
+# 3. Verify environment (optional)
+python -m pytest -v
+
+# 4. Start developing!
+```
+
+#### 🖥️ **Cursor IDE Users** (VS Code Compatible):
+- **Open Project**: `File > Open Folder` → Select `experiment-mlops`
+- **Check Status Bar**: Should show `(venv)` and correct Python interpreter
+- **Select Interpreter**: `Ctrl+Shift+P` → "Python: Select Interpreter" → Choose venv path
+- **Integrated Terminal**: `Ctrl+`` ` (automatically activates virtual environment)
+
+### 🌙 End of Day
+```bash
+# 1. Commit your work
+git add .
+git commit -m "Your commit message"
+git push origin feature/your-feature-name
+
+# 2. Deactivate virtual environment
+deactivate
+
+# 3. Close terminal/IDE
+```
+
+### 🔄 Next Day Continuation
+```bash
+# 1. Navigate to project
+cd D:\Projects\Github\experiment-mlops
+
+# 2. Activate virtual environment
+.\venv\Scripts\Activate.ps1
+
+# 3. Continue development
+```
+
+### ✅ Key Commands Reference
+- **Activate**: `.\venv\Scripts\Activate.ps1`
+- **Deactivate**: `deactivate`
+- **Run tests**: `python -m pytest -v`
+- **Check packages**: `pip list`
+- **Install new package**: `pip install package-name`
+
+---
+
 ## 🚀 Quick Start Options
 
 ### Option A: GitHub Actions with Azure ML (Recommended)
