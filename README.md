@@ -26,6 +26,96 @@ experiment-mlops/
 └── README.md                        # This file
 ```
 
+# ALWAYS WORK FROM PYTHON VIRTUAL ENVIRONMENT AND DEACTIVATE ONCE DONE!!! 
+
+## 📋 Daily Development Workflow
+
+### 🚀 Starting Development (First Time Setup)
+```bash
+# 1. Clone repository and navigate to project
+git clone <repository-url>
+cd experiment-mlops
+
+# 2. Create feature branch (no virtual environment needed)
+git checkout -b feature/your-feature-name
+
+# 3. Create virtual environment
+python -m venv venv
+
+# 4. Activate virtual environment
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
+
+# 5. Install dependencies (needs virtual environment)
+pip install -r requirements.txt
+
+# 6. Verify setup (needs virtual environment)
+python -m pytest -v
+```
+
+### 🌅 Daily Start (Continuing Development)
+```bash
+# 1. Navigate to project
+cd path/to/your/experiment-mlops
+
+# 2. Activate virtual environment
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
+
+# 3. Verify environment (optional)
+python -m pytest -v
+
+# 4. Start developing!
+```
+
+#### 🖥️ **Cursor IDE Users** (VS Code Compatible):
+- **Open Project**: `File > Open Folder` → Select `experiment-mlops`
+- **Check Status Bar**: Should show `(venv)` and correct Python interpreter
+- **Select Interpreter**: `Ctrl+Shift+P` → "Python: Select Interpreter" → Choose venv path
+- **Integrated Terminal**: `Ctrl+`` ` (automatically activates virtual environment)
+
+### 🌙 End of Day
+```bash
+# 1. Commit your work
+git add .
+git commit -m "Your commit message"
+git push origin feature/your-feature-name
+
+# 2. Deactivate virtual environment
+deactivate
+
+# 3. Close terminal/IDE
+```
+
+### 🔄 Next Day Continuation
+```bash
+# 1. Navigate to project
+cd path/to/your/experiment-mlops
+
+# 2. Activate virtual environment
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
+
+# 3. Continue development
+```
+
+### ✅ Key Commands Reference
+- **Activate**: 
+  - Windows: `venv\Scripts\activate`
+  - macOS/Linux: `source venv/bin/activate`
+- **Deactivate**: `deactivate`
+- **Run tests**: `python -m pytest -v`
+- **Check packages**: `pip list`
+- **Install new package**: `pip install package-name`
+
+---
+
 ## 🚀 Quick Start Options
 
 ### Option A: GitHub Actions with Azure ML (Recommended)
@@ -274,7 +364,7 @@ inputs:
 ## 🔧 Setup for Local Development
 
 ### 1. Install Dependencies
-```powershell
+```bash
 pip install -r requirements.txt
 ```
 
@@ -297,15 +387,15 @@ def main(args):
 ## 🏃‍♂️ Local Training Commands
 
 ### Basic Training
-```powershell
+```bash
 # Train with development data
-python .\src\model\train.py --training_data .\experimentation\data
+python src/model/train.py --training_data ./experimentation/data
 
 # Train with custom regularization
-python .\src\model\train.py --training_data .\experimentation\data --reg_rate 0.05
+python src/model/train.py --training_data ./experimentation/data --reg_rate 0.05
 
 # Train with production data
-python .\src\model\train.py --training_data .\production\data --experiment_name production_model
+python src/model/train.py --training_data ./production/data --experiment_name production_model
 ```
 
 ### Command Line Arguments
@@ -318,7 +408,7 @@ python .\src\model\train.py --training_data .\production\data --experiment_name 
 ## 📊 Local MLflow UI
 
 ### Start MLflow UI
-```powershell
+```bash
 # Start MLflow dashboard
 mlflow ui
 
@@ -438,9 +528,9 @@ if __name__ == "__main__":
 ```
 
 ### **Run Locally:**
-```powershell
+```bash
 # Train with local MLflow
-python .\src\model\train.py --training_data .\experimentation\data
+python src/model/train.py --training_data ./experimentation/data
 
 # Start MLflow UI to view results
 mlflow ui
@@ -491,8 +581,8 @@ print(f"MLflow Experiment: {args.experiment_name}")
 ```
 
 #### **Step 2: Test Locally**
-```powershell
-python .\src\model\train.py --training_data .\experimentation\data
+```bash
+python src/model/train.py --training_data ./experimentation/data
 mlflow ui
 ```
 
@@ -703,14 +793,14 @@ python --version  # Should be 3.8+
 # 🧪 Testing
 
 ## Run Unit Tests
-```powershell
+```bash
 pytest tests/
 ```
 
 ## Test Training Script
-```powershell
+```bash
 # Test with small dataset
-python .\src\model\train.py --training_data .\tests\datasets
+python src/model/train.py --training_data ./tests/datasets
 ```
 
 ---
@@ -751,9 +841,9 @@ az ml job cancel -n <job-name> -w <workspace> -g <resource-group>
 ```
 
 ### Local Development
-```powershell
+```bash
 # Train model locally
-python .\src\model\train.py --training_data .\experimentation\data
+python src/model/train.py --training_data ./experimentation/data
 
 # Start MLflow UI
 mlflow ui
@@ -804,6 +894,7 @@ You have successfully completed this MLOps workflow when you can:
 - `mlflow>=2.14.1`: Experiment tracking and model management
 - `pandas>=2.1.0`: Data manipulation
 - `scikit-learn==1.7.0`: Machine learning library
+- `autopep8>=2.3.0`: Auto formatting 'autopep8 --in-place --aggressive --aggressive src/model/train.py'
 
 ## Contributing
 

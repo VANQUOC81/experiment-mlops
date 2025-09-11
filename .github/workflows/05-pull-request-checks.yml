@@ -11,9 +11,24 @@ jobs:
     steps:
     - name: Check out repo
       uses: actions/checkout@v4
-    - name: Placeholder
+
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+
+    - name: Install dependencies
       run: |
-        echo "Will add code checks here in next challenge"
-        echo "Pull request verification workflow is working!"
-        echo "Branch: ${{ github.head_ref }}"
-        echo "Base branch: ${{ github.base_ref }}"
+        python -m pip install --upgrade pip
+        python -m pip install flake8
+        pip install -r requirements.txt
+
+    - name: Run Flake8 linting
+      run: |
+        flake8 src/model/
+
+    - name: Run pytest unit tests
+      run: |
+        python -m pytest tests/ -v --tb=short
+      env:
+        PYTHONPATH: src
