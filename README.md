@@ -43,7 +43,10 @@ git checkout -b feature/your-feature-name
 python -m venv venv
 
 # 4. Activate virtual environment
-.\venv\Scripts\Activate.ps1
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
 
 # 5. Install dependencies (needs virtual environment)
 pip install -r requirements.txt
@@ -55,10 +58,13 @@ python -m pytest -v
 ### 🌅 Daily Start (Continuing Development)
 ```bash
 # 1. Navigate to project
-cd D:\Projects\Github\experiment-mlops
+cd path/to/your/experiment-mlops
 
 # 2. Activate virtual environment
-.\venv\Scripts\Activate.ps1
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
 
 # 3. Verify environment (optional)
 python -m pytest -v
@@ -88,16 +94,21 @@ deactivate
 ### 🔄 Next Day Continuation
 ```bash
 # 1. Navigate to project
-cd D:\Projects\Github\experiment-mlops
+cd path/to/your/experiment-mlops
 
 # 2. Activate virtual environment
-.\venv\Scripts\Activate.ps1
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
 
 # 3. Continue development
 ```
 
 ### ✅ Key Commands Reference
-- **Activate**: `.\venv\Scripts\Activate.ps1`
+- **Activate**: 
+  - Windows: `venv\Scripts\activate`
+  - macOS/Linux: `source venv/bin/activate`
 - **Deactivate**: `deactivate`
 - **Run tests**: `python -m pytest -v`
 - **Check packages**: `pip list`
@@ -353,7 +364,7 @@ inputs:
 ## 🔧 Setup for Local Development
 
 ### 1. Install Dependencies
-```powershell
+```bash
 pip install -r requirements.txt
 ```
 
@@ -376,15 +387,15 @@ def main(args):
 ## 🏃‍♂️ Local Training Commands
 
 ### Basic Training
-```powershell
+```bash
 # Train with development data
-python .\src\model\train.py --training_data .\experimentation\data
+python src/model/train.py --training_data ./experimentation/data
 
 # Train with custom regularization
-python .\src\model\train.py --training_data .\experimentation\data --reg_rate 0.05
+python src/model/train.py --training_data ./experimentation/data --reg_rate 0.05
 
 # Train with production data
-python .\src\model\train.py --training_data .\production\data --experiment_name production_model
+python src/model/train.py --training_data ./production/data --experiment_name production_model
 ```
 
 ### Command Line Arguments
@@ -397,7 +408,7 @@ python .\src\model\train.py --training_data .\production\data --experiment_name 
 ## 📊 Local MLflow UI
 
 ### Start MLflow UI
-```powershell
+```bash
 # Start MLflow dashboard
 mlflow ui
 
@@ -517,9 +528,9 @@ if __name__ == "__main__":
 ```
 
 ### **Run Locally:**
-```powershell
+```bash
 # Train with local MLflow
-python .\src\model\train.py --training_data .\experimentation\data
+python src/model/train.py --training_data ./experimentation/data
 
 # Start MLflow UI to view results
 mlflow ui
@@ -570,8 +581,8 @@ print(f"MLflow Experiment: {args.experiment_name}")
 ```
 
 #### **Step 2: Test Locally**
-```powershell
-python .\src\model\train.py --training_data .\experimentation\data
+```bash
+python src/model/train.py --training_data ./experimentation/data
 mlflow ui
 ```
 
@@ -782,14 +793,14 @@ python --version  # Should be 3.8+
 # 🧪 Testing
 
 ## Run Unit Tests
-```powershell
+```bash
 pytest tests/
 ```
 
 ## Test Training Script
-```powershell
+```bash
 # Test with small dataset
-python .\src\model\train.py --training_data .\tests\datasets
+python src/model/train.py --training_data ./tests/datasets
 ```
 
 ---
@@ -830,9 +841,9 @@ az ml job cancel -n <job-name> -w <workspace> -g <resource-group>
 ```
 
 ### Local Development
-```powershell
+```bash
 # Train model locally
-python .\src\model\train.py --training_data .\experimentation\data
+python src/model/train.py --training_data ./experimentation/data
 
 # Start MLflow UI
 mlflow ui
