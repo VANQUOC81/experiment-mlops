@@ -1,0 +1,47 @@
+name: Train and Deploy Model
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  experiment:
+    name: Train Model - Development
+    runs-on: ubuntu-latest
+    environment: development
+    steps:
+    - name: Check out repo
+      uses: actions/checkout@v4
+      
+    - name: Install az ml extension
+      run: az extension add -n ml -y
+      
+    - name: Azure login
+      uses: azure/login@v1
+      with:
+        creds: ${{secrets.AZURE_CRED_LOGIN_SP_DEV_ENV}}
+        
+    - name: Trigger Azure ML experiment job
+      run: az ml job create --file src/job.yml --resource-group todozi-data-science-rg --workspace-name todozi-ml-ws
+      # This uses the diabetes-dev-folder dataset as configured in job.yml
+
+  production:
+    name: Train Model - Production
+    runs-on: ubuntu-latest
+    environment: production
+    needs: experiment
+    steps:
+    - name: Check out repo
+      uses: actions/checkout@v4
+      
+    - name: Install az ml extension
+      run: az extension add -n ml -y
+      
+    - name: Azure login
+      uses: azure/login@v1
+      with:
+        creds: ${{secrets.AZURE_CRED_LOGIN_SP_PROD_ENV}}
+        
+    - name: Trigger Azure ML production job
+      run: az ml job create --file src/job-prod.yml --resource-group todozi-data-science-rg --workspace-name todozi-ml-ws
+      # This will use the diabetes-prod-folder dataset as configured in job-prod.yml

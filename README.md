@@ -11,11 +11,14 @@ This project demonstrates MLOps practices for training and tracking machine lear
 experiment-mlops/
 ├── .github/
 │   └── workflows/
-│       └── 02-manual-trigger-job.yml  # GitHub Actions workflow
+│       ├── 02-manual-trigger-job.yml  # Manual GitHub Actions trigger
+│       ├── 05-pull-request-checks.yml # PR quality checks (linting, tests)
+│       └── 06-train-and-deploy.yml    # Automated CI/CD ML pipeline
 ├── src/
 │   ├── model/
 │   │   └── train.py                   # Main training script with MLflow tracking
-│   └── job.yml                       # Azure ML job configuration
+│   ├── job.yml                       # Azure ML job config (development)
+│   └── job-prod.yml                  # Azure ML job config (production)
 ├── experimentation/
 │   └── data/                         # Development dataset (diabetes-dev.csv)
 ├── production/
@@ -118,13 +121,201 @@ source venv/bin/activate
 
 ## 🚀 Quick Start Options
 
-### Option A: GitHub Actions with Azure ML (Recommended)
-### Option B: Azure ML Direct (Alternative Cloud)
-### Option C: Local MLflow (Traditional)
+### 🤖 **Option A: GitHub Actions with Azure ML (Recommended)**
+Complete automated CI/CD pipeline with environment separation and approval workflows.
+
+### 📋 **Alternative Options:**
+- **Option B**: [Azure ML Direct](README_AZURE_ML_DIRECT.md) - Manual cloud training via Azure CLI
+- **Option C**: [Local MLflow](README_LOCAL_MLFLOW.md) - Traditional local development workflow
 
 ---
 
-# 🤖 GitHub Actions with Azure ML (Recommended)
+# 🔄 Complete MLOps Workflow Execution
+
+## 📊 CI/CD Pipeline Overview
+
+This project implements a comprehensive MLOps pipeline with two complementary GitHub Actions workflows:
+
+### 🔍 **Workflow 1: Pull Request Code Verification** (`05-pull-request-checks.yml`)
+- **Trigger**: Pull requests to `main` branch
+- **Purpose**: Quality gate before code merges
+- **Actions**: Code linting, unit testing, dependency verification
+
+### 🚀 **Workflow 2: Train and Deploy Pipeline** (`06-train-and-deploy.yml`)
+- **Trigger**: Pushes to `main` branch (after PR merge)
+- **Purpose**: Automated ML training with environment separation
+- **Actions**: Development training → Production training (with approval)
+
+## 🎯 Complete Workflow Execution Flow
+
+### **Phase 1: Development & Pull Request**
+```mermaid
+graph TD
+    A[Developer creates feature branch] --> B[Code changes + commit]
+    B --> C[Create Pull Request to main]
+    C --> D[05-pull-request-checks.yml triggers]
+    D --> E[Code Verification: Linting + Tests]
+    E --> F{Tests Pass?}
+    F -->|❌ Fail| G[Fix issues, push changes]
+    G --> D
+    F -->|✅ Pass| H[PR approved & merged to main]
+```
+
+**Step-by-step:**
+1. **Developer Workflow**:
+   ```bash
+   git checkout -b feature/new-model-improvement
+   # Make code changes
+   git add .
+   git commit -m "Improve model accuracy"
+   git push origin feature/new-model-improvement
+   ```
+
+2. **Create Pull Request**: Developer creates PR to `main` branch
+
+3. **Automated Quality Checks** (`05-pull-request-checks.yml`):
+   - ✅ **Code Linting**: `flake8` checks code style
+   - ✅ **Unit Tests**: `pytest` validates functionality
+   - ✅ **Dependency Check**: Ensures requirements.txt compatibility
+   - ❌ **Blocks merge** if any check fails
+
+4. **Code Review & Merge**: After approval, PR merges to `main`
+
+### **Phase 2: Automated ML Training Pipeline**
+```mermaid
+graph TD
+    H[Code merged to main] --> I[06-train-and-deploy.yml triggers]
+    I --> J[Experiment Job - Development Environment]
+    J --> K[Train model with diabetes-dev-folder]
+    K --> L{Development Training Success?}
+    L -->|❌ Fail| M[Pipeline stops, investigate logs]
+    L -->|✅ Success| N[Production Job waits for approval]
+    N --> O[Manual Approval Required]
+    O --> P[Production Job - Production Environment]
+    P --> Q[Train model with diabetes-prod-folder]
+    Q --> R[Both models logged to Azure ML]
+```
+
+**Step-by-step:**
+
+5. **Automatic Trigger**: Push to `main` triggers `06-train-and-deploy.yml`
+
+6. **Development Training** (Automatic):
+   - **Environment**: `development` (no approval needed)
+   - **Data**: `diabetes-dev-folder` (small dataset)
+   - **Secrets**: Uses `AZURE_CRED_LOGIN_SP_DEV_ENV`
+   - **Purpose**: Validate model training works with new code
+
+7. **Production Training** (Manual Approval):
+   - **Dependency**: Only runs if development job succeeds
+   - **Environment**: `production` (requires approval)
+   - **Data**: `diabetes-prod-folder` (full dataset)
+   - **Secrets**: Uses `AZURE_CRED_LOGIN_SP_PROD_ENV`
+   - **Purpose**: Train production model with complete data
+
+## 🔒 Environment Separation & Security
+
+### **Development Environment**
+- **Access**: Automatic execution
+- **Data**: Small development dataset (`diabetes-dev-folder`)
+- **Service Principal**: `AZURE_CRED_LOGIN_SP_DEV_ENV`
+- **Purpose**: Rapid iteration and testing
+
+### **Production Environment**
+- **Access**: Manual approval required
+- **Data**: Full production dataset (`diabetes-prod-folder`)
+- **Service Principal**: `AZURE_CRED_LOGIN_SP_PROD_ENV`
+- **Purpose**: Production model training with complete data
+
+## 📈 Monitoring & Results
+
+### **GitHub Actions Monitoring**
+- **Pull Request Checks**: View status directly on PR
+- **Training Pipeline**: Monitor in Actions tab
+- **Approval Workflow**: Production environment shows pending approval
+
+### **Azure ML Monitoring**
+- **Development Experiment**: `diabetes-prediction`
+- **Production Experiment**: `diabetes-prediction-production`
+- **Metrics Comparison**: Compare dev vs prod model performance
+- **MLflow Tracking**: All runs automatically logged
+
+## 🎯 Real-World Scenario Example
+
+### **Scenario**: Data scientist improves model regularization
+
+1. **Development**:
+   ```bash
+   git checkout -b feature/improve-regularization
+   # Edit src/model/train.py - change regularization logic
+   git commit -m "Add adaptive regularization"
+   git push origin feature/improve-regularization
+   ```
+
+2. **Pull Request**:
+   - Create PR to `main`
+   - `05-pull-request-checks.yml` runs automatically
+   - Code passes linting and unit tests ✅
+   - PR gets reviewed and approved
+
+3. **Merge to Main**:
+   ```bash
+   git checkout main
+   git pull origin main  # Contains merged changes
+   ```
+
+4. **Automated Training**:
+   - `06-train-and-deploy.yml` triggers automatically
+   - **Development job**: Trains with small dataset, validates improvement
+   - **Success**: Development model shows better accuracy ✅
+   - **Production approval**: Team receives notification for approval
+
+5. **Production Deployment**:
+   - Team approves production training
+   - **Production job**: Trains with full dataset
+   - **Results**: Both models logged to Azure ML for comparison
+
+6. **Validation**:
+   - Compare development vs production metrics
+   - Verify improvement holds with full dataset
+   - Model ready for deployment to inference endpoints
+
+## 🚨 Failure Scenarios & Recovery
+
+### **Pull Request Check Failures**
+```bash
+# If linting fails:
+flake8 src/model/  # Check specific issues
+autopep8 --in-place --aggressive --aggressive src/model/train.py
+
+# If tests fail:
+python -m pytest tests/ -v  # See detailed test results
+```
+
+### **Development Training Failures**
+- **Action**: Check Azure ML job logs
+- **Common Issues**: Data asset not found, compute cluster issues
+- **Recovery**: Fix issues and push new commit (triggers new workflow)
+
+### **Production Approval Timeout**
+- **Action**: Manual approval in GitHub Actions
+- **Backup**: Re-run workflow if approval expires
+
+## 🎉 Success Metrics
+
+**Complete workflow success means**:
+- ✅ Code quality checks pass
+- ✅ Development model trains successfully
+- ✅ Production model trains successfully
+- ✅ Both models logged to Azure ML
+- ✅ Metrics available for comparison
+- ✅ No manual intervention needed (except approval)
+
+This automated pipeline ensures **code quality**, **environment separation**, **approval controls**, and **comprehensive tracking** - the foundation of production MLOps! 🚀
+
+---
+
+# 🤖 GitHub Actions with Azure ML - Complete MLOps Pipeline
 
 ## Prerequisites
 
@@ -136,9 +327,10 @@ source venv/bin/activate
 
 2. **GitHub Setup**:
    - Fork/clone this repository
-   - Create `AZURE_CREDENTIALS` secret
+   - Create GitHub environments (development and production)
+   - Configure environment-specific secrets
 
-## 🔑 Service Principal Setup
+## 🔑 Service Principal & Environment Setup
 
 ### 1. Create Service Principal
 ```powershell
@@ -148,78 +340,35 @@ az ad sp create-for-rbac --name "mlops-github-sp" --role contributor \
     --sdk-auth
 ```
 
-### 2. Create GitHub Secret
-1. Go to repository → **Settings** → **Secrets and variables** → **Actions**
-2. Create new secret named `AZURE_CREDENTIALS`
-3. Paste the entire JSON output from service principal creation
+### 2. Create GitHub Environments
+1. Go to repository → **Settings** → **Environments**
+2. Create two environments:
+   - `development`
+   - `production` (enable "Required reviewers" approval)
+
+### 3. Configure Environment Secrets
+For **each environment**, add the secret:
+- **Secret Name**: 
+  - Development: `AZURE_CRED_LOGIN_SP_DEV_ENV`
+  - Production: `AZURE_CRED_LOGIN_SP_PROD_ENV`
+- **Secret Value**: Paste the entire JSON output from service principal creation
+
+> **Note**: You can use the same service principal for both environments, or create separate ones for better isolation.
 
 ## ⚙️ Compute Cluster Setup
 
 1. **Azure ML Studio**: Navigate to **Compute** → **Compute clusters**
 2. Click **New**
 3. Configure:
-   - Name: `my-compute-cluster`
-   - VM Size: `Standdjust based on needs)
-4. Enable **Idle seconds befoard_DS3_v2` (recommended)
-   - Min nodes: `0` (scales to zero when idle)
-   - Max nodes: `1` (are scale down**
+   - **Name**: `my-compute-cluster`
+   - **VM Size**: `Standard_DS3_v2` (recommended, adjust based on needs)
+   - **Min nodes**: `0` (scales to zero when idle)
+   - **Max nodes**: `1` (adjust based on workload)
+4. Enable **Idle seconds before scale down** for cost optimization
 
 ## 📊 Data Asset Registration
-Same as Azure ML Direct workflow below.
 
-## 🚀 Trigger Training
-
-### Manual Trigger
-1. Go to **Actions** → **Manually trigger an Azure Machine Learning job**
-2. Click **Run workflow**
-3. Monitor progress in GitHub Actions and Azure ML Studio
-
-### View Results
-- GitHub Actions: See workflow run logs
-- Azure ML Studio: View detailed metrics and artifacts
-
-# 🌩️ Azure ML Direct Workflow (Alternative)
-
-## Prerequisites
-
-1. **Azure ML Workspace** - Create via Azure Portal
-2. **Azure CLI** - 64-bit version with ML extension
-3. **Compute Instance** - For running training jobs
-
-## 🔧 Setup Azure CLI
-
-### 1. Install Azure CLI (64-bit)
-```powershell
-# Uninstall old version first
-winget uninstall Microsoft.AzureCLI
-
-# Install latest 64-bit version
-winget install Microsoft.AzureCLI
-
-# Verify installation
-az --version
-# Should show: Python (Windows) 3.x.x [MSC v.xxxx 64 bit (AMD64)]
-```
-
-### 2. Install ML Extension
-```powershell
-# Install Azure ML extension
-az extension add -n ml
-
-# Verify ML extension
-az extension list | findstr ml
-```
-
-### 3. Authenticate
-```powershell
-# Login to Azure
-az login --scope https://management.azure.com/.default
-
-# Verify authentication
-az account show
-```
-
-## 📊 Data Asset Registration
+You need to register both development and production datasets in Azure ML:
 
 ### Register Development Dataset
 ```powershell
@@ -248,401 +397,29 @@ az ml data list \
   --resource-group <your-resource-group>
 ```
 
-## 💻 Compute Instance Creation
+> **Detailed Instructions**: See [README_AZURE_ML_DIRECT.md](README_AZURE_ML_DIRECT.md) for complete Azure CLI setup and data asset management.
 
-### Via Azure ML Studio
-1. Navigate to **Azure ML Studio** → **Compute** → **Compute Instances**
-2. Click **+ New**
-3. Choose VM size:
-   - **Standard_DS3_v2** (Recommended for learning)
-   - 4 cores, 14GB RAM, good for small datasets
-4. Name: `diabetes-compute-instance`
-5. Click **Create**
+## 🚀 Automated Training Pipeline
 
-### Via Azure CLI
-```powershell
-az ml compute create \
-  --name diabetes-compute-instance \
-  --type ComputeInstance \
-  --size Standard_DS3_v2 \
-  --workspace-name <your-workspace-name> \
-  --resource-group <your-resource-group>
-```
+### Automatic Trigger
+The training pipeline automatically triggers when:
+1. **Pull Request**: Code quality checks run on PR creation
+2. **Merge to Main**: Complete training pipeline runs after PR merge
+   - Development training (automatic)
+   - Production training (requires approval)
 
-## ⚙️ Job Configuration
-
-### Edit `src/job.yml`
-```yaml
-$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
-code: ./model
-command: python train.py --training_data ${{inputs.training_data}} --reg_rate ${{inputs.reg_rate}}
-inputs:
-  training_data:
-    type: uri_folder
-    path: azureml:diabetes-dev-folder@latest  # Use your data asset
-  reg_rate: 0.01
-environment: azureml:AzureML-sklearn-0.24-ubuntu18.04-py37-cpu@latest
-compute: azureml:diabetes-compute-instance    # Use your compute instance name
-experiment_name: diabetes-prediction
-description: Train a diabetes prediction model using logistic regression with MLflow tracking
-```
-
-## 🏃‍♂️ Submit Training Job
-
-### Basic Job Submission
-```powershell
-az ml job create \
-  --file src/job.yml \
-  --resource-group <your-resource-group> \
-  --workspace-name <your-workspace-name>
-```
-
-### Monitor Job
-The command returns a Studio URL to monitor your job:
-```
-https://ml.azure.com/runs/<job-name>?wsid=/subscriptions/.../workspaces/<workspace>
-```
-
-### Check Job Status
-```powershell
-az ml job show \
-  --name <job-name> \
-  --workspace-name <your-workspace-name> \
-  --resource-group <your-resource-group>
-```
-
-## 📈 Azure ML MLflow Integration
-
-### How It Works
-- **Automatic Integration**: Azure ML automatically configures MLflow
-- **Managed Runs**: Azure ML creates and manages MLflow runs
-- **No Manual Setup**: Don't call `mlflow.start_run()` or set tracking URI
-- **Built-in UI**: View metrics in Azure ML Studio
-
-### What Gets Tracked
-- ✅ **Model Parameters**: Automatically via `mlflow.sklearn.autolog()`
-- ✅ **Training Metrics**: Loss, accuracy from sklearn
-- ✅ **Custom Metrics**: `test_accuracy`, `test_auc` via `mlflow.log_metric()`
-- ✅ **Model Artifacts**: Trained model saved automatically
-- ✅ **Code Snapshots**: Training script and environment
+### Manual Workflow Trigger (Optional)
+For manual testing, you can also trigger workflows:
+1. Go to **Actions** → Select desired workflow
+2. Click **Run workflow** → **Run workflow**
+3. Monitor progress in GitHub Actions
 
 ### View Results
-1. **Azure ML Studio**: Navigate to your job → **Metrics** tab
-2. **MLflow UI**: Use the tracking endpoint provided in job output
-3. **Experiments**: View all runs under the experiment name
+- **GitHub Actions**: See workflow run logs and approval status
+- **Azure ML Studio**: View detailed metrics, experiments, and artifacts
+- **Environments**: Monitor deployment approvals in repository settings
 
-## 🔄 Re-running Jobs
 
-### Re-run Same Configuration
-```powershell
-# Creates a new job with same settings
-az ml job create \
-  --file src/job.yml \
-  --resource-group <your-resource-group> \
-  --workspace-name <your-workspace-name>
-```
-
-### Re-run with Different Parameters
-```yaml
-# Edit src/job.yml to change:
-inputs:
-  reg_rate: 0.05  # Different regularization
-  # Or change data asset to production data
-  training_data:
-    path: azureml:diabetes-prod-folder@latest
-```
-
-### Clone from Azure ML Studio
-1. Go to **Jobs** → Select completed job
-2. Click **Clone** → Modify parameters
-3. Click **Submit**
-
----
-
-# 🏠 Local MLflow Workflow (Alternative)
-
-## 🔧 Setup for Local Development
-
-### 1. Install Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Configure Local MLflow
-Edit `src/model/train.py` to enable local MLflow:
-
-```python
-# Uncomment for local MLflow tracking
-mlflow.set_tracking_uri("file:./mlruns")
-
-# Use manual run management for local
-def main(args):
-    mlflow.sklearn.autolog()
-    
-    # For local development, manually manage runs
-    with mlflow.start_run():
-        run_training_workflow(args)
-```
-
-## 🏃‍♂️ Local Training Commands
-
-### Basic Training
-```bash
-# Train with development data
-python src/model/train.py --training_data ./experimentation/data
-
-# Train with custom regularization
-python src/model/train.py --training_data ./experimentation/data --reg_rate 0.05
-
-# Train with production data
-python src/model/train.py --training_data ./production/data --experiment_name production_model
-```
-
-### Command Line Arguments
-| Argument | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `--training_data` | ✅ | - | Path to directory containing CSV training data |
-| `--reg_rate` | ❌ | 0.1 | Regularization rate (higher = more regularization) |
-| `--experiment_name` | ❌ | diabetes_prediction | MLflow experiment name |
-
-## 📊 Local MLflow UI
-
-### Start MLflow UI
-```bash
-# Start MLflow dashboard
-mlflow ui
-
-# MLflow UI available at: http://127.0.0.1:5000
-```
-
-### View Experiments
-1. Open http://127.0.0.1:5000
-2. Browse experiments and runs
-3. Compare model performance
-4. Download model artifacts
-
----
-
-# 🔀 Switching Between Azure ML and Local MLflow
-
-## ⚠️ **Critical Understanding: Two Incompatible Modes**
-
-Your `train.py` script can operate in **two mutually exclusive modes**:
-
-1. **🌩️ Azure ML Mode**: Designed for Azure ML jobs (current configuration)
-2. **🏠 Local MLflow Mode**: Designed for local development with manual MLflow
-
-**You CANNOT mix these modes** - each requires specific configuration changes.
-
----
-
-## 🌩️ **Current Configuration: Azure ML Mode**
-
-### **How It Works:**
-- ✅ **No tracking URI**: Azure ML automatically configures MLflow
-- ✅ **No manual runs**: Azure ML creates and manages runs
-- ✅ **No experiment setting**: Experiment comes from `job.yml`
-- ✅ **Direct logging**: All `mlflow.log_param()` and `mlflow.log_metric()` calls work directly
-
-### **Key Code Characteristics:**
-```python
-# Line 16: Tracking URI is commented out
-# mlflow.set_tracking_uri("file:./mlruns")  # Only for local runs
-
-# Lines 34-36: No manual run management
-def main(args):
-    mlflow.sklearn.autolog()
-    # Azure ML automatically manages MLflow runs, so we don't need to start one manually
-    run_training_workflow(args)
-
-# Lines 222-224: No experiment setting
-# In Azure ML, experiment is automatically set via job.yml
-print(f"Azure ML will use experiment from job.yml: {args.experiment_name}")
-```
-
-### **Why This Works in Azure ML:**
-- Azure ML automatically starts an MLflow run with ID matching the job name
-- All MLflow logging calls work within this managed run context
-- Experiment name comes from `job.yml` configuration
-- Results appear in Azure ML Studio under **Metrics** tab
-
----
-
-## 🏠 **Converting to Local MLflow Mode**
-
-### **⚠️ WARNING: This Will Break Azure ML Jobs**
-
-If you make these changes, submitting to Azure ML will fail with experiment/run ID conflicts.
-
-### **Required Changes to `src/model/train.py`:**
-
-#### **1. Enable Local Tracking URI (Line 16):**
-```python
-# FOR LOCAL: Uncomment this line
-mlflow.set_tracking_uri("file:./mlruns")
-```
-
-#### **2. Add Manual Run Management (Lines 34-36):**
-```python
-def main(args):
-    mlflow.sklearn.autolog()
-    
-    # FOR LOCAL: Manually manage MLflow runs
-    with mlflow.start_run():
-        run_training_workflow(args)
-```
-
-#### **3. Enable Experiment Setting (Lines 222-224):**
-```python
-# FOR LOCAL: Manually set experiment
-try:
-    mlflow.set_experiment(args.experiment_name)
-    print(f"MLflow Experiment: {args.experiment_name}")
-except Exception as e:
-    print(f"Warning: Could not set experiment name, using default. Error: {e}")
-```
-
-### **Complete Local Configuration:**
-```python
-# src/model/train.py - LOCAL CONFIGURATION
-
-# Enable local tracking
-mlflow.set_tracking_uri("file:./mlruns")
-
-def main(args):
-    mlflow.sklearn.autolog()
-    
-    # Manually manage runs for local development
-    with mlflow.start_run():
-        run_training_workflow(args)
-
-# In main execution block:
-if __name__ == "__main__":
-    args = parse_args()
-    
-    # Set experiment manually for local
-    mlflow.set_experiment(args.experiment_name)
-    print(f"MLflow Experiment: {args.experiment_name}")
-    
-    main(args)
-```
-
-### **Run Locally:**
-```bash
-# Train with local MLflow
-python src/model/train.py --training_data ./experimentation/data
-
-# Start MLflow UI to view results
-mlflow ui
-# Open: http://127.0.0.1:5000
-```
-
----
-
-## ❌ **Why Each Configuration Breaks in Wrong Context**
-
-### **Azure ML Configuration Fails Locally:**
-```bash
-# Error when running locally with Azure ML config:
-AttributeError: 'NoneType' object has no attribute 'info'
-# Because mlflow.active_run() returns None without manual run management
-```
-
-### **Local Configuration Fails in Azure ML:**
-```bash
-# Error when submitting to Azure ML with local config:
-MlflowException: Cannot start run with ID <job_name> because active run ID 
-does not match environment run ID. Make sure --experiment-name or 
---experiment-id matches experiment set with set_experiment()
-```
-
-**Root Cause**: Azure ML automatically creates runs and sets experiments, but local config tries to create its own, causing ID conflicts.
-
----
-
-## 🔄 **Step-by-Step Mode Switching**
-
-### **Azure ML → Local MLflow**
-
-#### **Step 1: Modify `train.py` for Local**
-```python
-# 1. Uncomment tracking URI (line 16)
-mlflow.set_tracking_uri("file:./mlruns")
-
-# 2. Add manual run management (lines 34-36)
-def main(args):
-    mlflow.sklearn.autolog()
-    with mlflow.start_run():  # Add this wrapper
-        run_training_workflow(args)
-
-# 3. Enable experiment setting (lines 222-224)
-mlflow.set_experiment(args.experiment_name)
-print(f"MLflow Experiment: {args.experiment_name}")
-```
-
-#### **Step 2: Test Locally**
-```bash
-python src/model/train.py --training_data ./experimentation/data
-mlflow ui
-```
-
-#### **Step 3: ⚠️ DO NOT Submit to Azure ML**
-This configuration will fail if submitted as an Azure ML job.
-
-### **Local MLflow → Azure ML**
-
-#### **Step 1: Revert `train.py` for Azure ML**
-```python
-# 1. Comment out tracking URI (line 16)
-# mlflow.set_tracking_uri("file:./mlruns")  # Only for local runs
-
-# 2. Remove manual run management (lines 34-36)
-def main(args):
-    mlflow.sklearn.autolog()
-    # No with mlflow.start_run(): wrapper
-    run_training_workflow(args)
-
-# 3. Disable experiment setting (lines 222-224)
-print(f"Azure ML will use experiment from job.yml: {args.experiment_name}")
-# No mlflow.set_experiment() call
-```
-
-#### **Step 2: Submit to Azure ML**
-```powershell
-az ml job create \
-  --file src/job.yml \
-  --resource-group <your-resource-group> \
-  --workspace-name <your-workspace-name>
-```
-
-#### **Step 3: ⚠️ DO NOT Run Locally**
-This configuration will fail if run locally without Azure ML.
-
----
-
-## 🎯 **Best Practice: Choose One Mode**
-
-### **For Learning/Development:**
-- **Use Azure ML Mode** (current configuration)
-- Submit jobs to Azure ML for training
-- View results in Azure ML Studio
-- Learn cloud MLOps practices
-
-### **For Production MLOps:**
-- **Use Azure ML Mode** (current configuration)
-- Integrate with CI/CD pipelines
-- Use Azure ML for model deployment
-- Leverage enterprise features
-
-### **For Local Experimentation Only:**
-- **Use Local MLflow Mode**
-- Quick iteration and debugging
-- Local MLflow UI for experiment tracking
-- No cloud dependencies
-
-**Recommendation**: Stick with **Azure ML Mode** since you're learning MLOps and want to see metrics in Azure ML Studio! 🚀
-
----
 
 # 📊 Model Performance & Results
 
@@ -679,10 +456,11 @@ From the diabetes prediction model:
 
 ### Authentication Failed
 ```bash
-# Check if AZURE_CREDENTIALS secret is:
-1. Named exactly "AZURE_CREDENTIALS"
-2. Contains complete JSON output from service principal creation
-3. Service principal has contributor access
+# Check environment secrets are correctly configured:
+1. Development environment has "AZURE_CRED_LOGIN_SP_DEV_ENV" secret
+2. Production environment has "AZURE_CRED_LOGIN_SP_PROD_ENV" secret  
+3. Both contain complete JSON output from service principal creation
+4. Service principal has contributor access
 ```
 
 ### Compute Cluster Issues
@@ -807,6 +585,10 @@ python src/model/train.py --training_data ./tests/datasets
 
 # 📚 Additional Resources
 
+## Alternative Workflows
+- **[README_AZURE_ML_DIRECT.md](README_AZURE_ML_DIRECT.md)**: Manual cloud training via Azure CLI
+- **[README_LOCAL_MLFLOW.md](README_LOCAL_MLFLOW.md)**: Traditional local development workflow
+
 ## Azure ML Documentation
 - [Azure ML CLI v2](https://docs.microsoft.com/en-us/azure/machine-learning/reference-azure-machine-learning-cli)
 - [Azure ML Jobs](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-train-model)
@@ -854,39 +636,6 @@ pytest tests/
 # Install dependencies
 pip install -r requirements.txt
 ```
-
----
-
-# 🎯 Success Criteria
-
-You have successfully completed this MLOps workflow when you can:
-
-1. ✅ **Set up GitHub Actions**:
-   - Create and configure service principal
-   - Set up GitHub secrets
-   - Configure compute cluster
-
-2. ✅ **Manage Azure Resources**:
-   - Register data assets in Azure ML
-   - Configure compute options (cluster/instance)
-   - Monitor resource usage and costs
-
-3. ✅ **Submit Training Jobs** via:
-   - GitHub Actions (recommended)
-   - Azure CLI (alternative)
-   - Local MLflow (development)
-
-4. ✅ **Monitor and Track**:
-   - GitHub Actions workflow runs
-   - Azure ML Studio jobs
-   - MLflow experiments and metrics
-
-5. ✅ **Switch Between Modes**:
-   - GitHub Actions workflow
-   - Direct Azure ML submission
-   - Local MLflow development
-
-**Congratulations!** You've implemented a complete MLOps pipeline with Azure Machine Learning! 🚀
 
 ## Dependencies
 
