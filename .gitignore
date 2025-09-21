@@ -132,3 +132,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Exclude challenges answers
+documentation/05-environments-answers.md
