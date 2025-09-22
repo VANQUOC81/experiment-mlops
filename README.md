@@ -185,15 +185,28 @@ graph TD
 ```mermaid
 graph TD
     H[Code merged to main] --> I[06-train-and-deploy.yml triggers]
-    I --> J[Experiment Job - Development Environment]
-    J --> K[Train model with diabetes-dev-folder]
-    K --> L{Development Training Success?}
-    L -->|❌ Fail| M[Pipeline stops, investigate logs]
-    L -->|✅ Success| N[Production Job waits for approval]
-    N --> O[Manual Approval Required]
-    O --> P[Production Job - Production Environment]
-    P --> Q[Train model with diabetes-prod-folder]
-    Q --> R[Both models logged to Azure ML]
+    I --> J[Development Job Starts]
+    J --> K[Submit Azure ML Dev Job]
+    K --> L[Poll Azure ML Status Every 30s]
+    L --> M{Azure ML Dev Complete?}
+    M -->|❌ Failed| N[GitHub Actions FAILS ❌]
+    M -->|⏳ Running| L
+    M -->|✅ Success| O[GitHub Actions SUCCESS ✅]
+    O --> P[Production Job Waits for Approval]
+    P --> Q[Manual Approval Required]
+    Q --> R[Submit Azure ML Prod Job]
+    R --> S[Poll Azure ML Prod Status Every 30s]
+    S --> T{Azure ML Prod Complete?}
+    T -->|❌ Failed| U[GitHub Actions FAILS ❌]
+    T -->|⏳ Running| S
+    T -->|✅ Success| V[Complete Pipeline SUCCESS ✅]
+    
+    style H fill:#e1f5fe
+    style N fill:#ffebee
+    style U fill:#ffebee
+    style O fill:#e8f5e8
+    style V fill:#e8f5e8
+    style Q fill:#fff3e0
 ```
 
 **Step-by-step:**
@@ -204,13 +217,15 @@ graph TD
    - **Environment**: `development` (no approval needed)
    - **Data**: `diabetes-dev-folder` (small dataset)
    - **Secrets**: Uses `AZURE_CRED_LOGIN_SP_DEV_ENV`
+   - **Process**: Submits job to Azure ML and **waits for completion**
    - **Purpose**: Validate model training works with new code
 
 7. **Production Training** (Manual Approval):
-   - **Dependency**: Only runs if development job succeeds
+   - **Dependency**: Only runs if development **Azure ML job completes successfully**
    - **Environment**: `production` (requires approval)
    - **Data**: `diabetes-prod-folder` (full dataset)
    - **Secrets**: Uses `AZURE_CRED_LOGIN_SP_PROD_ENV`
+   - **Process**: Submits job to Azure ML and **waits for completion**
    - **Purpose**: Train production model with complete data
 
 ## 🔒 Environment Separation & Security
@@ -305,11 +320,12 @@ python -m pytest tests/ -v  # See detailed test results
 
 **Complete workflow success means**:
 - ✅ Code quality checks pass
-- ✅ Development model trains successfully
-- ✅ Production model trains successfully
-- ✅ Both models logged to Azure ML
-- ✅ Metrics available for comparison
-- ✅ No manual intervention needed (except approval)
+- ✅ Development **Azure ML job completes successfully** (not just submits)
+- ✅ Production job waits for manual approval
+- ✅ Production **Azure ML job completes successfully** (not just submits)
+- ✅ Both models logged to Azure ML with metrics
+- ✅ GitHub Actions shows green only after actual training completion
+- ✅ No manual intervention needed (except production approval)
 
 This automated pipeline ensures **code quality**, **environment separation**, **approval controls**, and **comprehensive tracking** - the foundation of production MLOps! 🚀
 

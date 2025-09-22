@@ -22,8 +22,38 @@ jobs:
         creds: ${{secrets.AZURE_CRED_LOGIN_SP_DEV_ENV}}
         
     - name: Trigger Azure ML experiment job
-      run: az ml job create --file src/job.yml --resource-group todozi-data-science-rg --workspace-name todozi-ml-ws
+      run: |
+        echo "Submitting Azure ML job..."
+        job_name=$(az ml job create --file src/job.yml --resource-group todozi-data-science-rg --workspace-name todozi-ml-ws --query name -o tsv)
+        echo "Job submitted with name: $job_name"
+        echo "job_name=$job_name" >> $GITHUB_OUTPUT
+      id: submit_job
       # This uses the diabetes-dev-folder dataset as configured in job.yml
+      
+    - name: Wait for Azure ML job completion
+      run: |
+        job_name="${{ steps.submit_job.outputs.job_name }}"
+        echo "Waiting for job $job_name to complete..."
+        
+        while true; do
+          status=$(az ml job show --name $job_name --resource-group todozi-data-science-rg --workspace-name todozi-ml-ws --query status -o tsv)
+          echo "Current job status: $status"
+          
+          case $status in
+            "Completed")
+              echo "✅ Job completed successfully!"
+              break
+              ;;
+            "Failed"|"Canceled"|"NotStarted")
+              echo "❌ Job failed with status: $status"
+              exit 1
+              ;;
+            *)
+              echo "⏳ Job still running (status: $status), waiting 30 seconds..."
+              sleep 30
+              ;;
+          esac
+        done
 
   production:
     name: Train Model - Production
@@ -43,5 +73,35 @@ jobs:
         creds: ${{secrets.AZURE_CRED_LOGIN_SP_PROD_ENV}}
         
     - name: Trigger Azure ML production job
-      run: az ml job create --file src/job-prod.yml --resource-group todozi-data-science-rg --workspace-name todozi-ml-ws
+      run: |
+        echo "Submitting Azure ML production job..."
+        job_name=$(az ml job create --file src/job-prod.yml --resource-group todozi-data-science-rg --workspace-name todozi-ml-ws --query name -o tsv)
+        echo "Production job submitted with name: $job_name"
+        echo "job_name=$job_name" >> $GITHUB_OUTPUT
+      id: submit_prod_job
       # This will use the diabetes-prod-folder dataset as configured in job-prod.yml
+      
+    - name: Wait for Azure ML production job completion
+      run: |
+        job_name="${{ steps.submit_prod_job.outputs.job_name }}"
+        echo "Waiting for production job $job_name to complete..."
+        
+        while true; do
+          status=$(az ml job show --name $job_name --resource-group todozi-data-science-rg --workspace-name todozi-ml-ws --query status -o tsv)
+          echo "Current production job status: $status"
+          
+          case $status in
+            "Completed")
+              echo "✅ Production job completed successfully!"
+              break
+              ;;
+            "Failed"|"Canceled"|"NotStarted")
+              echo "❌ Production job failed with status: $status"
+              exit 1
+              ;;
+            *)
+              echo "⏳ Production job still running (status: $status), waiting 30 seconds..."
+              sleep 30
+              ;;
+          esac
+        done
