@@ -22,8 +22,63 @@ jobs:
         creds: ${{secrets.AZURE_CRED_LOGIN_SP_DEV_ENV}}
         
     - name: Trigger Azure ML experiment job
-      run: az ml job create --file src/job.yml --resource-group todozi-data-science-rg --workspace-name todozi-ml-ws
+      run: |
+        echo "Submitting Azure ML job..."
+        job_name=$(az ml job create --file src/job.yml --resource-group todozi-data-science-rg --workspace-name todozi-ml-ws --query name -o tsv)
+        echo "Job submitted with name: $job_name"
+        echo "job_name=$job_name" >> $GITHUB_OUTPUT
+      id: submit_job
       # This uses the diabetes-dev-folder dataset as configured in job.yml
+      
+    - name: Wait for Azure ML job completion
+      run: |
+        job_name="${{ steps.submit_job.outputs.job_name }}"
+        echo "Waiting for job $job_name to complete..."
+        
+        max_attempts=240  # 2 hours max (240 * 30 seconds)
+        attempt=0
+        
+        while [ $attempt -lt $max_attempts ]; do
+          attempt=$((attempt + 1))
+          
+          # Get job status with error handling
+          if ! status=$(az ml job show --name $job_name --resource-group todozi-data-science-rg --workspace-name todozi-ml-ws --query status -o tsv 2>/dev/null); then
+            echo "❌ Failed to get job status (attempt $attempt/$max_attempts)"
+            if [ $attempt -eq $max_attempts ]; then
+              echo "❌ Max attempts reached, failing workflow"
+              exit 1
+            fi
+            sleep 30
+            continue
+          fi
+          
+          echo "Current job status: $status (attempt $attempt/$max_attempts)"
+          
+          # Convert to lowercase for case-insensitive comparison
+          status_lower=$(echo "$status" | tr '[:upper:]' '[:lower:]')
+          
+          case $status_lower in
+            "completed")
+              echo "✅ Job completed successfully!"
+              exit 0
+              ;;
+            "failed"|"canceled")
+              echo "❌ Job failed with status: $status"
+              exit 1
+              ;;
+            "notstarted"|"running"|"queued"|"preparing"|"provisioning")
+              echo "⏳ Job still running (status: $status), waiting 30 seconds..."
+              sleep 30
+              ;;
+            *)
+              echo "⚠️ Unknown job status: $status, treating as running..."
+              sleep 30
+              ;;
+          esac
+        done
+        
+        echo "❌ Job did not complete within 2 hours, failing workflow"
+        exit 1
 
   production:
     name: Train Model - Production
@@ -43,5 +98,60 @@ jobs:
         creds: ${{secrets.AZURE_CRED_LOGIN_SP_PROD_ENV}}
         
     - name: Trigger Azure ML production job
-      run: az ml job create --file src/job-prod.yml --resource-group todozi-data-science-rg --workspace-name todozi-ml-ws
+      run: |
+        echo "Submitting Azure ML production job..."
+        job_name=$(az ml job create --file src/job-prod.yml --resource-group todozi-data-science-rg --workspace-name todozi-ml-ws --query name -o tsv)
+        echo "Production job submitted with name: $job_name"
+        echo "job_name=$job_name" >> $GITHUB_OUTPUT
+      id: submit_prod_job
       # This will use the diabetes-prod-folder dataset as configured in job-prod.yml
+      
+    - name: Wait for Azure ML production job completion
+      run: |
+        job_name="${{ steps.submit_prod_job.outputs.job_name }}"
+        echo "Waiting for production job $job_name to complete..."
+        
+        max_attempts=240  # 2 hours max (240 * 30 seconds)
+        attempt=0
+        
+        while [ $attempt -lt $max_attempts ]; do
+          attempt=$((attempt + 1))
+          
+          # Get job status with error handling
+          if ! status=$(az ml job show --name $job_name --resource-group todozi-data-science-rg --workspace-name todozi-ml-ws --query status -o tsv 2>/dev/null); then
+            echo "❌ Failed to get production job status (attempt $attempt/$max_attempts)"
+            if [ $attempt -eq $max_attempts ]; then
+              echo "❌ Max attempts reached, failing workflow"
+              exit 1
+            fi
+            sleep 30
+            continue
+          fi
+          
+          echo "Current production job status: $status (attempt $attempt/$max_attempts)"
+          
+          # Convert to lowercase for case-insensitive comparison
+          status_lower=$(echo "$status" | tr '[:upper:]' '[:lower:]')
+          
+          case $status_lower in
+            "completed")
+              echo "✅ Production job completed successfully!"
+              exit 0
+              ;;
+            "failed"|"canceled")
+              echo "❌ Production job failed with status: $status"
+              exit 1
+              ;;
+            "notstarted"|"running"|"queued"|"preparing"|"provisioning")
+              echo "⏳ Production job still running (status: $status), waiting 30 seconds..."
+              sleep 30
+              ;;
+            *)
+              echo "⚠️ Unknown production job status: $status, treating as running..."
+              sleep 30
+              ;;
+          esac
+        done
+        
+        echo "❌ Production job did not complete within 2 hours, failing workflow"
+        exit 1
