@@ -96,14 +96,15 @@ def run_training_workflow(args):
     active_run = mlflow.active_run()
     if active_run:
         print(f"MLflow Run ID: {active_run.info.run_id}")
-        # Now we can get the actual experiment name since MLflow is active
+        # Get the actual experiment name since MLflow is active
         try:
             experiment = mlflow.get_experiment(active_run.info.experiment_id)
-            print(f"Actual Experiment Name: {experiment.name}")
+            print(f"Experiment Name: {experiment.name}")
         except Exception:
             print("Could not retrieve experiment name")
     else:
         print("MLflow run information not available")
+    
     print(f"View results: Azure ML Studio")
 
 
@@ -238,21 +239,6 @@ if __name__ == "__main__":
     # Display configuration information
     print(f"Training Data Path: {args.training_data}")
     print(f"Regularization Rate: {args.reg_rate}")
-    
-    # Check if running in Azure ML context
-    import os
-    azure_experiment_name = os.getenv('AZUREML_EXPERIMENT_NAME')
-    
-    if azure_experiment_name:
-        # Running in Azure ML - experiment name comes from job file
-        print(f"Azure ML Experiment Name: {azure_experiment_name}")
-        if args.experiment_name != azure_experiment_name:
-            print(f"Note: Command line experiment name "
-                  f"'{args.experiment_name}' is overridden by job file")
-    else:
-        # Running locally - use command line experiment name
-        print(f"Experiment Name: {args.experiment_name}")
-        print("Note: Running locally - experiment name will be used as specified")
 
     # Run main training function (this will start MLflow operations)
     main(args)
