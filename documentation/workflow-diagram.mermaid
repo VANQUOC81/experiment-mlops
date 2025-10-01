@@ -5,7 +5,7 @@ graph TD
     D --> E{Azure ML Dev Complete?}
     E -->|❌ Failed| F[GitHub Actions FAILS ❌]
     E -->|⏳ Running| D
-    E -->|✅ Success| G[GitHub Actions SUCCESS ✅]
+    E -->|✅ Success| G[Dev Job SUCCESS ✅]
     G --> H[Production Job Waits for Approval]
     H --> I[Manual Approval Required]
     I --> J[Submit Azure ML Prod Job]
@@ -13,13 +13,74 @@ graph TD
     K --> L{Azure ML Prod Complete?}
     L -->|❌ Failed| M[GitHub Actions FAILS ❌]
     L -->|⏳ Running| K
-    L -->|✅ Success| N[Complete Pipeline SUCCESS ✅]
+    L -->|✅ Success| N[Training SUCCESS ✅]
+    N --> O[Register Model in Azure ML]
+    O --> P[Model Registered]
+    
+    P --> Q[Manual: Deploy Model Workflow]
+    Q --> R[Verify Model Already Registered]
+    R --> S{Model Exists?}
+    S -->|❌ No| T[ERROR: Run Training First]
+    S -->|✅ Yes| U[Create/Update Endpoint]
+    U --> V[Deploy Model to Endpoint]
+    V --> W[Allocate 100% Traffic]
+    W --> X[Automatic Endpoint Test]
+    X --> Y{Test Passed?}
+    Y -->|❌ Failed| Z[Deployment FAILS ❌]
+    Y -->|✅ Success| AA[🎉 Model Live in Production]
+    
+    AA --> BB[Test Options]
+    BB --> BC[Azure ML Studio Test Tab]
+    BB --> BD[Python test_endpoint.py]
+    BB --> BE[cURL or Postman]
+    
+    AA --> BF[Blue-Green Deployment Ready]
+    BF --> BG[New Model Version Available?]
+    BG -->|Yes| BH[Deploy Green with New Model]
+    BG -->|No| BI[Keep Current Blue Deployment]
+    
+    BH --> BJ[Set Green to 0% Traffic]
+    BJ --> BK[Test Green with 10% Traffic]
+    BK --> BL{Green Performance OK?}
+    BL -->|❌ Issues| BM[Rollback to Blue 100%]
+    BL -->|✅ Good| BN[Gradual Traffic Shift]
+    
+    BN --> BO[Blue 75% → Green 25%]
+    BO --> BP{Still Good?}
+    BP -->|✅ Yes| BQ[Blue 50% → Green 50%]
+    BP -->|❌ Issues| BM
+    
+    BQ --> BR[Blue 0% → Green 100%]
+    BR --> BS[Delete Old Blue Deployment]
+    
+    BM --> BT[Investigate Green Issues]
+    BT --> BU[Fix and Redeploy Green]
+    BU --> BK
+    
+    BS --> BV[🎉 Blue-Green Complete]
+    BI --> BV
     
     style A fill:#e1f5fe
     style F fill:#ffebee
     style M fill:#ffebee
+    style T fill:#ffebee
+    style Z fill:#ffebee
+    style BM fill:#ffebee
     style G fill:#e8f5e8
     style N fill:#e8f5e8
+    style P fill:#e1f0ff
+    style AA fill:#c8e6c9
+    style BV fill:#c8e6c9
     style I fill:#fff3e0
+    style Q fill:#fff3e0
+    style BF fill:#fff3e0
+    style BH fill:#e3f2fd
+    style BJ fill:#e3f2fd
+    style BK fill:#e3f2fd
+    style BN fill:#e3f2fd
+    style BO fill:#e3f2fd
+    style BQ fill:#e3f2fd
+    style BR fill:#e3f2fd
+    style BS fill:#e3f2fd
 
 

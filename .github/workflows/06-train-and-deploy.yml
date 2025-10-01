@@ -155,3 +155,43 @@ jobs:
         
         echo "❌ Production job did not complete within 2 hours, failing workflow"
         exit 1
+        
+    # ========================================
+    # STEP: Register the model from the production job
+    # ========================================
+    # After training completes successfully, we register the model
+    # This makes it available in the Azure ML Model Registry for deployment
+    - name: Register model from production job
+      run: |
+        job_name="${{ steps.submit_prod_job.outputs.job_name }}"
+        echo "📦 Registering model from production job: $job_name"
+        
+        # Register the model from the completed job's output
+        # MLflow autologging saved the model to "outputs/artifacts/model"
+        az ml model create \
+          --name diabetes-model \
+          --type mlflow_model \
+          --path "azureml://jobs/$job_name/outputs/artifacts/model" \
+          --resource-group todozi-data-science-rg \
+          --workspace-name todozi-ml-ws
+        
+        # Get the version that was just registered
+        model_version=$(az ml model show \
+          --name diabetes-model \
+          --resource-group todozi-data-science-rg \
+          --workspace-name todozi-ml-ws \
+          --query version \
+          -o tsv | head -n 1)
+        
+        echo "✅ Model registered successfully!"
+        echo "   Name: diabetes-model"
+        echo "   Version: $model_version"
+        echo ""
+        echo "🎯 Next Steps:"
+        echo "   1. Go to Azure ML Studio → Models to see your registered model"
+        echo "   2. Run the '07-deploy-model' workflow to deploy this model to an endpoint"
+        
+        # Save the model version for potential future steps
+        echo "model_version=$model_version" >> $GITHUB_OUTPUT
+      id: register_model
+ 
