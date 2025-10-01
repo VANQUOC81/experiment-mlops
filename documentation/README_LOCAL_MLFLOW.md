@@ -189,7 +189,7 @@ To switch between local and Azure ML modes, you need to:
 
 3. **Disable experiment setting**:
    ```python
-   print(f"Azure ML will use experiment from job.yml: {args.experiment_name}")
+   print(f"Azure ML will use experiment from job-dev.yml: {args.experiment_name}")
    # No mlflow.set_experiment() call
    ```
 

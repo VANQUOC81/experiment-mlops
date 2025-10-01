@@ -24,11 +24,11 @@ jobs:
     - name: Trigger Azure ML experiment job
       run: |
         echo "Submitting Azure ML job..."
-        job_name=$(az ml job create --file src/job.yml --resource-group todozi-data-science-rg --workspace-name todozi-ml-ws --query name -o tsv)
+        job_name=$(az ml job create --file src/job-dev.yml --resource-group todozi-data-science-rg --workspace-name todozi-ml-ws --query name -o tsv)
         echo "Job submitted with name: $job_name"
         echo "job_name=$job_name" >> $GITHUB_OUTPUT
       id: submit_job
-      # This uses the diabetes-dev-folder dataset as configured in job.yml
+      # This uses the diabetes-dev-folder dataset as configured in job-dev.yml
       
     - name: Wait for Azure ML job completion
       run: |
