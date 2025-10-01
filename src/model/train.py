@@ -92,10 +92,16 @@ def run_training_workflow(args):
     print(f"Test Accuracy: {test_accuracy:.4f}")
     print(f"Test AUC: {test_auc:.4f}")
 
-    # Print MLflow run ID if available
+    # Print MLflow run information
     active_run = mlflow.active_run()
     if active_run:
         print(f"MLflow Run ID: {active_run.info.run_id}")
+        # Now we can get the actual experiment name since MLflow is active
+        try:
+            experiment = mlflow.get_experiment(active_run.info.experiment_id)
+            print(f"Actual Experiment Name: {experiment.name}")
+        except Exception:
+            print("Could not retrieve experiment name")
     else:
         print("MLflow run information not available")
     print(f"View results: Azure ML Studio")
@@ -209,7 +215,7 @@ def parse_args():
         help="Regularization rate (higher = more regularization)")
     parser.add_argument("--experiment_name", dest='experiment_name',
                         type=str, default="diabetes_prediction",
-                        help="MLflow experiment name")
+                        help="MLflow experiment name (used for local runs, ignored in Azure ML)")
 
     return parser.parse_args()
 
@@ -229,11 +235,25 @@ if __name__ == "__main__":
     # Parse command line arguments
     args = parse_args()
 
-    # In Azure ML, experiment is automatically set via job.yml
-    # Don't manually set experiment - let Azure ML manage it
-    print(f"Azure ML will use experiment from job.yml: {args.experiment_name}")
+    # Display configuration information
+    print(f"Training Data Path: {args.training_data}")
+    print(f"Regularization Rate: {args.reg_rate}")
+    
+    # Check if running in Azure ML context
+    import os
+    azure_experiment_name = os.getenv('AZUREML_EXPERIMENT_NAME')
+    
+    if azure_experiment_name:
+        # Running in Azure ML - experiment name comes from job file
+        print(f"Azure ML Experiment Name: {azure_experiment_name}")
+        if args.experiment_name != azure_experiment_name:
+            print(f"Note: Command line experiment name '{args.experiment_name}' is overridden by job file")
+    else:
+        # Running locally - use command line experiment name
+        print(f"Experiment Name: {args.experiment_name}")
+        print("Note: Running locally - experiment name will be used as specified")
 
-    # Run main training function
+    # Run main training function (this will start MLflow operations)
     main(args)
 
     print("=" * 60)
