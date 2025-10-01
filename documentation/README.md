@@ -11,13 +11,13 @@ This project demonstrates MLOps practices for training and tracking machine lear
 experiment-mlops/
 ├── .github/
 │   └── workflows/
-│       ├── 02-manual-trigger-job.yml  # Manual GitHub Actions trigger
+│       ├── 02-manual-trigger-job-dev.yml  # Manual GitHub Actions trigger
 │       ├── 05-pull-request-checks.yml # PR quality checks (linting, tests)
 │       └── 06-train-and-deploy.yml    # Automated CI/CD ML pipeline
 ├── src/
 │   ├── model/
 │   │   └── train.py                   # Main training script with MLflow tracking
-│   ├── job.yml                       # Azure ML job config (development)
+│   ├── job-dev.yml                       # Azure ML job config (development)
 │   └── job-prod.yml                  # Azure ML job config (production)
 ├── experimentation/
 │   └── data/                         # Development dataset (diabetes-dev.csv)
@@ -483,7 +483,7 @@ From the diabetes prediction model:
 ```bash
 # Common issues:
 1. Using compute instance instead of cluster
-2. Cluster name mismatch in job.yml
+2. Cluster name mismatch in job-dev.yml
 3. Cluster not scaling up (check quota limits)
 ```
 
@@ -530,13 +530,13 @@ az login --scope https://management.azure.com/.default
 ```powershell
 # Always include resource group and workspace
 az ml job create \
-  --file src/job.yml \
+  --file src/job-dev.yml \
   --resource-group <your-resource-group> \
   --workspace-name <your-workspace-name>
 ```
 
 ### Compute Instance Not Found
-Update `src/job.yml`:
+Update `src/job-dev.yml`:
 ```yaml
 compute: azureml:<your-actual-compute-instance-name>
 ```

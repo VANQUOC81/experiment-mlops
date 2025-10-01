@@ -105,7 +105,7 @@ az ml compute create \
 
 ## ⚙️ Job Configuration
 
-### Edit `src/job.yml`
+### Edit `src/job-dev.yml`
 ```yaml
 $schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
 code: ./model
@@ -126,7 +126,7 @@ description: Train a diabetes prediction model using logistic regression with ML
 ### Basic Job Submission
 ```powershell
 az ml job create \
-  --file src/job.yml \
+  --file src/job-dev.yml \
   --resource-group <your-resource-group> \
   --workspace-name <your-workspace-name>
 ```
@@ -171,14 +171,14 @@ az ml job show \
 ```powershell
 # Creates a new job with same settings
 az ml job create \
-  --file src/job.yml \
+  --file src/job-dev.yml \
   --resource-group <your-resource-group> \
   --workspace-name <your-workspace-name>
 ```
 
 ### Re-run with Different Parameters
 ```yaml
-# Edit src/job.yml to change:
+# Edit src/job-dev.yml to change:
 inputs:
   reg_rate: 0.05  # Different regularization
   # Or change data asset to production data
@@ -197,14 +197,14 @@ inputs:
 ```powershell
 # Submit job with development data
 az ml job create \
-  --file src/job.yml \
+  --file src/job-dev.yml \
   --resource-group <your-resource-group> \
   --workspace-name <your-workspace-name>
 ```
 
 ### 2. Parameter Tuning
 ```yaml
-# Edit src/job.yml with different parameters
+# Edit src/job-dev.yml with different parameters
 inputs:
   reg_rate: 0.1  # Try different regularization
 ```
@@ -212,15 +212,15 @@ inputs:
 ```powershell
 # Submit new job
 az ml job create \
-  --file src/job.yml \
+  --file src/job-dev.yml \
   --resource-group <your-resource-group> \
   --workspace-name <your-workspace-name>
 ```
 
 ### 3. Production Validation
-Option A - Edit existing job.yml:
+Option A - Edit existing job-dev.yml:
 ```yaml
-# Edit src/job.yml for production data
+# Edit src/job-dev.yml for production data
 inputs:
   training_data:
     path: azureml:diabetes-prod-folder@latest
@@ -236,12 +236,12 @@ az ml job create \
   --workspace-name <your-workspace-name>
 ```
 
-> **Note**: The main GitHub Actions workflow uses separate `job.yml` (dev) and `job-prod.yml` (prod) files for better separation.
+> **Note**: The main GitHub Actions workflow uses separate `job-dev.yml` (dev) and `job-prod.yml` (prod) files for better separation.
 
 ```powershell
 # Submit production job
 az ml job create \
-  --file src/job.yml \
+  --file src/job-dev.yml \
   --resource-group <your-resource-group> \
   --workspace-name <your-workspace-name>
 ```
@@ -317,13 +317,13 @@ az login --scope https://management.azure.com/.default
 ```powershell
 # Always include resource group and workspace
 az ml job create \
-  --file src/job.yml \
+  --file src/job-dev.yml \
   --resource-group <your-resource-group> \
   --workspace-name <your-workspace-name>
 ```
 
 #### Compute Instance Not Found
-Update `src/job.yml`:
+Update `src/job-dev.yml`:
 ```yaml
 compute: azureml:<your-actual-compute-instance-name>
 ```
@@ -348,7 +348,7 @@ az ml data list \
 ### 1. Organized Experimentation
 ```powershell
 # Use descriptive experiment names
-# Edit job.yml:
+# Edit job-dev.yml:
 experiment_name: diabetes-regularization-tuning
 ```
 
