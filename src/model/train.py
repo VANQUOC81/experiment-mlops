@@ -48,10 +48,11 @@ def run_training_workflow(args):
     # Log custom parameters for this training run
     mlflow.log_param("training_data_path", args.training_data)
     mlflow.log_param("reg_rate", args.reg_rate)
+    print(f"Regularization Rate: {args.reg_rate}")
     mlflow.log_param("regularization_C", 1 / args.reg_rate)
 
     # Load and prepare data
-    print(f"Training data path: {args.training_data}")
+    print(f"Training Data Path: {args.training_data}")
     df = get_csvs_df(args.training_data)
 
     # Log dataset information for tracking
@@ -235,10 +236,6 @@ if __name__ == "__main__":
 
     # Parse command line arguments
     args = parse_args()
-
-    # Display configuration information
-    print(f"Training Data Path: {args.training_data}")
-    print(f"Regularization Rate: {args.reg_rate}")
 
     # Run main training function (this will start MLflow operations)
     main(args)
