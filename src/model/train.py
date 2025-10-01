@@ -247,7 +247,8 @@ if __name__ == "__main__":
         # Running in Azure ML - experiment name comes from job file
         print(f"Azure ML Experiment Name: {azure_experiment_name}")
         if args.experiment_name != azure_experiment_name:
-            print(f"Note: Command line experiment name '{args.experiment_name}' is overridden by job file")
+            print(f"Note: Command line experiment name "
+                  f"'{args.experiment_name}' is overridden by job file")
     else:
         # Running locally - use command line experiment name
         print(f"Experiment Name: {args.experiment_name}")
