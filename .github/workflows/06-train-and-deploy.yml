@@ -176,12 +176,12 @@ jobs:
           --workspace-name todozi-ml-ws
         
         # Get the version that was just registered
-        model_version=$(az ml model show \
+        model_version=$(az ml model list \
           --name diabetes-model \
           --resource-group todozi-data-science-rg \
           --workspace-name todozi-ml-ws \
-          --query version \
-          -o tsv | head -n 1)
+          --query "[0].version" \
+          -o tsv)
         
         echo "✅ Model registered successfully!"
         echo "   Name: diabetes-model"
