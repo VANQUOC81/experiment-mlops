@@ -1,0 +1,57 @@
+# ============================================================
+# GREEN DEPLOYMENT CONFIGURATION
+# ============================================================
+# This is identical to deployment.yml but with "green" naming
+# Used for blue-green deployment strategy
+# ============================================================
+
+$schema: https://azuremlschemas.azureedge.net/latest/managedOnlineDeployment.schema.json
+
+# Name of the GREEN deployment
+name: diabetes-prediction-deployment-green
+
+# Same endpoint as blue
+endpoint_name: diabetes-prediction-endpoint
+
+# Model to deploy (can be different version)
+# IMPORTANT: Using @latest can cause issues in blue-green!
+# Best practice: Pin to specific version for production
+# Example: model: azureml:diabetes-model:2
+# For learning: @latest is fine, but be aware both deployments
+# will use the same version if you redeploy
+model: azureml:diabetes-model@latest
+
+# Same environment as blue
+environment: azureml:AzureML-sklearn-0.24-ubuntu18.04-py37-cpu@latest
+
+# Same compute settings as blue
+# IMPORTANT: Must match blue deployment for fair comparison!
+# Using same instance type ensures performance testing is accurate
+instance_type: Standard_DS2_v2
+instance_count: 1
+
+# Same request settings as blue
+request_settings:
+  request_timeout_ms: 10000
+  max_concurrent_requests_per_instance: 1
+  max_queue_wait_ms: 1000
+
+# Same health probes as blue
+liveness_probe:
+  initial_delay: 10
+  period: 10
+  timeout: 2
+  success_threshold: 1
+  failure_threshold: 3
+
+readiness_probe:
+  initial_delay: 10
+  period: 10
+  timeout: 2
+  success_threshold: 1
+  failure_threshold: 3
+
+# Tags to identify this as green deployment
+tags:
+  deployment_type: "green"
+  model_version: "latest"

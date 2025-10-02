@@ -1,0 +1,347 @@
+# ============================================================
+# GITHUB ACTIONS WORKFLOW: DEPLOY MODEL TO AZURE ML ENDPOINT
+# ============================================================
+# This workflow handles the deployment pipeline:
+# 1. Verifies that a model is already registered (by training workflow)
+# 2. Creates or updates a managed online endpoint
+# 3. Deploys the registered model to the endpoint
+# 4. Tests the endpoint with sample data
+#
+# IMPORTANT: Model registration happens in the training workflow (06-train-and-deploy.yml)
+# This deployment workflow assumes the model is already registered and just deploys it.
+#
+# Prerequisites:
+# - Model must be registered by training workflow (06-train-and-deploy.yml)
+# - Azure credentials configured as GitHub secrets
+# - Endpoint and deployment YAML files in src/ directory
+#
+# Workflow separation:
+# - 06-train-and-deploy.yml: Train model + Register model
+# - 07-deploy-model.yml: Deploy registered model + Test endpoint
+# ============================================================
+
+name: Deploy Model to Endpoint
+
+# This workflow is manually triggered (workflow_dispatch)
+# You can run it from the GitHub Actions tab after training completes
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - development
+        - production
+
+jobs:
+  deploy:
+    name: Deploy Model to Endpoint
+    runs-on: ubuntu-latest
+    
+    # Use the environment specified in the workflow dispatch input
+    # This allows different environments to have different secrets and settings
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    
+    steps:
+    # ========================================
+    # STEP 1: Setup - Checkout code and install Azure CLI
+    # ========================================
+    - name: Check out repo
+      uses: actions/checkout@v4
+      
+    - name: Install Azure ML extension
+      run: az extension add -n ml -y
+      # The 'ml' extension provides Azure ML CLI v2 commands
+      # -y flag automatically confirms the installation
+      
+    # ========================================
+    # STEP 2: Authenticate with Azure
+    # ========================================
+    - name: Determine Azure credentials
+      run: |
+        # Determine which credentials to use based on environment selection
+        if [ "${{ github.event.inputs.environment }}" = "development" ]; then
+          echo "Using development environment credentials"
+          echo "azure_creds=${{ secrets.AZURE_CRED_LOGIN_SP_DEV_ENV }}" >> $GITHUB_OUTPUT
+        elif [ "${{ github.event.inputs.environment }}" = "production" ]; then
+          echo "Using production environment credentials"
+          echo "azure_creds=${{ secrets.AZURE_CRED_LOGIN_SP_PROD_ENV }}" >> $GITHUB_OUTPUT
+        else
+          echo "Unknown environment '${{ github.event.inputs.environment }}', defaulting to production"
+          echo "azure_creds=${{ secrets.AZURE_CRED_LOGIN_SP_PROD_ENV }}" >> $GITHUB_OUTPUT
+        fi
+      id: determine_creds
+        
+    - name: Azure login
+      uses: azure/login@v1
+      with:
+        # Use the credentials determined in the previous step
+        creds: ${{ steps.determine_creds.outputs.azure_creds }}
+        # This secret should contain a service principal with permissions to:
+        # - Read jobs and experiments
+        # - Register models
+        # - Create/update endpoints
+        # - Create/update deployments
+        
+    # ========================================
+    # STEP 3: Verify model is already registered
+    # ========================================
+    # NOTE: Model registration happens automatically in the training workflow (06-train-and-deploy.yml)
+    # This deployment workflow assumes the model is already registered and just deploys it
+    - name: Verify model is registered
+      run: |
+        echo "🔍 Checking if diabetes-model is already registered..."
+        
+        # Check if the model exists in Azure ML Model Registry
+        if ! az ml model show \
+          --name diabetes-model \
+          --resource-group todozi-data-science-rg \
+          --workspace-name todozi-ml-ws >/dev/null 2>&1; then
+          
+          echo "❌ Model 'diabetes-model' not found in Azure ML Model Registry!"
+          echo ""
+          echo "💡 SOLUTION: Run the training workflow first:"
+          echo "   GitHub → Actions → 'Train and Deploy Model' → Run workflow"
+          echo ""
+          echo "The training workflow automatically registers the model after successful training."
+          exit 1
+        fi
+        
+        # Get the latest model version
+        model_version=$(az ml model show \
+          --name diabetes-model \
+          --resource-group todozi-data-science-rg \
+          --workspace-name todozi-ml-ws \
+          --query version \
+          -o tsv | head -n 1)
+        
+        echo "✅ Found registered model: diabetes-model (version $model_version)"
+        echo ""
+        echo "📝 NOTE: This model was registered by the training workflow (06-train-and-deploy.yml)"
+        echo "   No need to register again - we'll deploy the existing registered model"
+        
+        # Save for later steps
+        echo "model_version=$model_version" >> $GITHUB_OUTPUT
+      id: verify_model
+      
+    # ========================================
+    # STEP 4: Create or update the endpoint
+    # ========================================
+    - name: Create or update endpoint
+      run: |
+        echo "🌐 Setting up endpoint..."
+        
+        # Check if the endpoint already exists
+        if az ml online-endpoint show \
+          --name diabetes-prediction-endpoint \
+          --resource-group todozi-data-science-rg \
+          --workspace-name todozi-ml-ws >/dev/null 2>&1; then
+          
+          echo "✅ Endpoint already exists"
+          echo "   Name: diabetes-prediction-endpoint"
+          
+        else
+          echo "🆕 Creating new endpoint..."
+          
+          # Create the endpoint using our configuration file
+          az ml online-endpoint create \
+            --file src/endpoint.yml \
+            --resource-group todozi-data-science-rg \
+            --workspace-name todozi-ml-ws
+          
+          echo "✅ Endpoint created successfully!"
+          
+          # Wait for endpoint to be ready
+          echo "⏳ Waiting for endpoint provisioning..."
+          sleep 30
+        fi
+      id: create_endpoint
+      
+    # ========================================
+    # STEP 5: Deploy the model to the endpoint
+    # ========================================
+    - name: Deploy model to endpoint
+      run: |
+        echo "🚀 Deploying model to endpoint..."
+        
+        # Check if deployment already exists
+        if az ml online-deployment show \
+          --name diabetes-prediction-deployment-blue \
+          --endpoint-name diabetes-prediction-endpoint \
+          --resource-group todozi-data-science-rg \
+          --workspace-name todozi-ml-ws >/dev/null 2>&1; then
+          
+          echo "🔄 Deployment exists, updating..."
+          
+          # Update the existing deployment with the new model
+          az ml online-deployment update \
+            --file src/deployment.yml \
+            --resource-group todozi-data-science-rg \
+            --workspace-name todozi-ml-ws
+          
+        else
+          echo "🆕 Creating new deployment..."
+          
+          # Create a new deployment
+          az ml online-deployment create \
+            --file src/deployment.yml \
+            --resource-group todozi-data-science-rg \
+            --workspace-name todozi-ml-ws
+        fi
+        
+        # Allocate 100% of traffic to this deployment
+        echo "🔀 Setting traffic allocation to 100%..."
+        az ml online-endpoint update \
+          --name diabetes-prediction-endpoint \
+          --traffic "diabetes-prediction-deployment-blue=100" \
+          --resource-group todozi-data-science-rg \
+          --workspace-name todozi-ml-ws
+        
+        echo "✅ Model deployed successfully!"
+        
+        # Wait for deployment to be ready
+        echo "⏳ Waiting for deployment to be ready..."
+        sleep 60
+      id: deploy_model
+      
+    # ========================================
+    # STEP 6: Get endpoint credentials for testing
+    # ========================================
+    - name: Get endpoint details
+      run: |
+        echo "🔑 Retrieving endpoint credentials..."
+        
+        # Get the scoring URI (the URL you'll call to make predictions)
+        scoring_uri=$(az ml online-endpoint show \
+          --name diabetes-prediction-endpoint \
+          --resource-group todozi-data-science-rg \
+          --workspace-name todozi-ml-ws \
+          --query scoring_uri \
+          -o tsv)
+        
+        # Get the primary authentication key
+        primary_key=$(az ml online-endpoint get-credentials \
+          --name diabetes-prediction-endpoint \
+          --resource-group todozi-data-science-rg \
+          --workspace-name todozi-ml-ws \
+          --query primaryKey \
+          -o tsv)
+        
+        echo "✅ Endpoint is ready!"
+        echo "   Scoring URI: $scoring_uri"
+        echo "   Primary Key: ${primary_key:0:20}..." # Only show first 20 chars for security
+        
+        # Store in outputs for testing step
+        echo "scoring_uri=$scoring_uri" >> $GITHUB_OUTPUT
+        echo "primary_key=$primary_key" >> $GITHUB_OUTPUT
+      id: get_endpoint_details
+      
+    # ========================================
+    # STEP 7: Test the endpoint with sample data
+    # ========================================
+    - name: Test endpoint with sample predictions
+      run: |
+        scoring_uri="${{ steps.get_endpoint_details.outputs.scoring_uri }}"
+        primary_key="${{ steps.get_endpoint_details.outputs.primary_key }}"
+        
+        echo "🧪 Testing endpoint with sample data..."
+        
+        # Prepare test data (from the challenge requirements)
+        # This matches the MLflow model input format
+        test_data='{
+          "input_data": {
+            "columns": [
+              "Pregnancies", "PlasmaGlucose", "DiastolicBloodPressure", 
+              "TricepsThickness", "SerumInsulin", "BMI", "DiabetesPedigree", "Age"
+            ],
+            "data": [
+              [9, 104, 51, 7, 24, 27.36983156, 1.350472047, 43],
+              [6, 73, 61, 35, 24, 18.74367404, 1.074147566, 75],
+              [4, 115, 50, 29, 243, 34.69215364, 0.741159926, 59]
+            ]
+          }
+        }'
+        
+        echo "📊 Test data:"
+        echo "$test_data" | jq '.'
+        
+        # Make a POST request to the endpoint
+        echo ""
+        echo "📡 Sending request to endpoint..."
+        response=$(curl -X POST "$scoring_uri" \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer $primary_key" \
+          -d "$test_data" \
+          --write-out "\nHTTPSTATUS:%{http_code}" \
+          --silent \
+          --show-error)
+        
+        # Extract HTTP status code
+        http_code=$(echo "$response" | grep -o "HTTPSTATUS:[0-9]*" | cut -d':' -f2)
+        response_body=$(echo "$response" | sed 's/HTTPSTATUS:[0-9]*$//')
+        
+        echo "📬 Response:"
+        echo "   HTTP Status: $http_code"
+        echo "   Body: $response_body"
+        
+        # Check if the request was successful
+        if [ "$http_code" -eq 200 ]; then
+          echo ""
+          echo "✅ Endpoint test PASSED!"
+          echo "🎯 Predictions received for all 3 test samples"
+          echo ""
+          echo "🎉 DEPLOYMENT SUCCESSFUL!"
+          echo ""
+          echo "You can now use this endpoint in your applications:"
+          echo "  Endpoint URL: $scoring_uri"
+          echo "  Authentication: Use the primary key in Authorization header"
+        else
+          echo ""
+          echo "❌ Endpoint test FAILED!"
+          echo "   HTTP Status: $http_code"
+          echo "   Response: $response_body"
+          exit 1
+        fi
+      id: test_endpoint
+      
+    # ========================================
+    # STEP 8: Summary and next steps
+    # ========================================
+    - name: Deployment summary
+      run: |
+        echo "================================================================"
+        echo "                   DEPLOYMENT SUMMARY"
+        echo "================================================================"
+        echo ""
+        echo "✅ Model: diabetes-model (version ${{ steps.verify_model.outputs.model_version }})"
+        echo "✅ Endpoint: diabetes-prediction-endpoint"
+        echo "✅ Deployment: diabetes-prediction-deployment-blue"
+        echo "✅ Status: Active and tested"
+        echo ""
+        echo "================================================================"
+        echo "                   HOW TO USE THE ENDPOINT"
+        echo "================================================================"
+        echo ""
+        echo "1. IN AZURE ML STUDIO:"
+        echo "   - Go to: Endpoints → diabetes-prediction-endpoint"
+        echo "   - Use the 'Test' tab to send sample data"
+        echo "   - View logs, metrics, and deployment details"
+        echo ""
+        echo "2. FROM POSTMAN OR CURL:"
+        echo "   - URL: ${{ steps.get_endpoint_details.outputs.scoring_uri }}"
+        echo "   - Method: POST"
+        echo "   - Headers:"
+        echo "     * Content-Type: application/json"
+        echo "     * Authorization: Bearer <YOUR_PRIMARY_KEY>"
+        echo "   - Body: See test_endpoint.py for sample format"
+        echo ""
+        echo "3. FROM PYTHON:"
+        echo "   - Use the test script: python src/test_endpoint.py"
+        echo "   - Pass --scoring-uri and --primary-key arguments"
+        echo ""
+        echo "================================================================"
+
+

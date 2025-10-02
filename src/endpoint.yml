@@ -1,0 +1,36 @@
+# ============================================================
+# AZURE ML MANAGED ONLINE ENDPOINT CONFIGURATION
+# ============================================================
+# This file defines the configuration for a managed online endpoint
+# in Azure Machine Learning. An endpoint is a stable URL that you
+# can call to get real-time predictions from your deployed model.
+#
+# Key Concepts:
+# - Endpoint: A persistent HTTPS URL that receives prediction requests
+# - Multiple deployments can exist under one endpoint
+# - Traffic can be split between different deployments (A/B testing)
+# ============================================================
+
+# Schema version for Azure ML endpoint configuration
+$schema: https://azuremlschemas.azureedge.net/latest/managedOnlineEndpoint.schema.json
+
+# Name of the endpoint
+# This will be part of your scoring URI: https://<endpoint-name>.<region>.inference.ml.azure.com/score
+name: diabetes-prediction-endpoint
+
+# Description of what this endpoint does
+description: Real-time endpoint for diabetes prediction model - predicts diabetes risk based on patient data
+
+# Authentication mode for accessing the endpoint
+# Options:
+# - "key": Uses API keys for authentication (simpler, good for initial setup)
+# - "aml_token": Uses Azure Active Directory tokens (more secure, better for production)
+auth_mode: key
+
+# Tags for organization and tracking
+tags:
+  model_type: "classification"
+  use_case: "diabetes_prediction"
+  environment: "production"
+
+
