@@ -60,31 +60,25 @@ jobs:
     # ========================================
     # STEP 2: Authenticate with Azure
     # ========================================
-    - name: Determine Azure credentials
-      run: |
-        # Determine which credentials to use based on environment selection
-        if [ "${{ github.event.inputs.environment }}" = "development" ]; then
-          echo "Using development environment credentials"
-          echo "azure_creds=${{ secrets.AZURE_CRED_LOGIN_SP_DEV_ENV }}" >> $GITHUB_OUTPUT
-        elif [ "${{ github.event.inputs.environment }}" = "production" ]; then
-          echo "Using production environment credentials"
-          echo "azure_creds=${{ secrets.AZURE_CRED_LOGIN_SP_PROD_ENV }}" >> $GITHUB_OUTPUT
-        else
-          echo "Unknown environment '${{ github.event.inputs.environment }}', defaulting to production"
-          echo "azure_creds=${{ secrets.AZURE_CRED_LOGIN_SP_PROD_ENV }}" >> $GITHUB_OUTPUT
-        fi
-      id: determine_creds
-        
-    - name: Azure login
+    - name: Azure login - Development
+      if: github.event.inputs.environment == 'development'
       uses: azure/login@v1
       with:
-        # Use the credentials determined in the previous step
-        creds: ${{ steps.determine_creds.outputs.azure_creds }}
-        # This secret should contain a service principal with permissions to:
-        # - Read jobs and experiments
-        # - Register models
-        # - Create/update endpoints
-        # - Create/update deployments
+        creds: ${{ secrets.AZURE_CRED_LOGIN_SP_DEV_ENV }}
+        
+    - name: Azure login - Production
+      if: github.event.inputs.environment == 'production'
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CRED_LOGIN_SP_PROD_ENV }}
+        
+    - name: Display authentication info
+      run: |
+        if [ "${{ github.event.inputs.environment }}" = "development" ]; then
+          echo "✅ Authenticated with DEVELOPMENT environment"
+        else
+          echo "✅ Authenticated with PRODUCTION environment"
+        fi
         
     # ========================================
     # STEP 3: Verify model is already registered
