@@ -45,7 +45,8 @@ environment: azureml:AzureML-sklearn-0.24-ubuntu18.04-py37-cpu@latest
 # Options: Standard_DS2_v2, Standard_DS3_v2, Standard_F4s_v2, etc.
 # DS3_v2 = 4 vCPUs, 14 GB RAM - good for moderate traffic (~$0.19/hour)
 # DS2_v2 = 2 vCPUs, 7 GB RAM - lower cost option (~$0.10/hour)
-instance_type: Standard_DS2_v2
+# Azure recommends DS3_v2 minimum for general purpose endpoints
+instance_type: Standard_DS3_v2
 
 # Number of instances to run
 # Start with 1 for testing, increase based on load

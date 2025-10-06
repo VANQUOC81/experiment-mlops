@@ -27,7 +27,8 @@ environment: azureml:AzureML-sklearn-0.24-ubuntu18.04-py37-cpu@latest
 # Same compute settings as blue
 # IMPORTANT: Must match blue deployment for fair comparison!
 # Using same instance type ensures performance testing is accurate
-instance_type: Standard_DS2_v2
+# Azure recommends DS3_v2 minimum for general purpose endpoints
+instance_type: Standard_DS3_v2
 instance_count: 1
 
 # Same request settings as blue
