@@ -19,7 +19,7 @@ $schema: https://azuremlschemas.azureedge.net/latest/managedOnlineDeployment.sch
 
 # Name of this specific deployment
 # You can have multiple deployments (e.g., "blue", "green") under one endpoint
-name: diabetes-prediction-deployment-blue
+name: diabetes-deploy-blue
 
 # Which endpoint this deployment belongs to
 # Must match the name in endpoint.yml

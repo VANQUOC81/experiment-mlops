@@ -131,7 +131,7 @@ az ml online-endpoint show --name diabetes-prediction-endpoint \
 
 **Get logs**:
 ```bash
-az ml online-deployment get-logs --name diabetes-prediction-deployment-blue \
+az ml online-deployment get-logs --name diabetes-deploy-blue \
   --endpoint-name diabetes-prediction-endpoint \
   --resource-group todozi-data-science-rg --workspace-name todozi-ml-ws
 ```

@@ -45,7 +45,7 @@ function Update-Traffic {
     if ($GreenPercent -gt 0) {
         Write-Host "🔍 Checking if green deployment exists..." -ForegroundColor Cyan
         az ml online-deployment show `
-            --name diabetes-prediction-deployment-green `
+            --name diabetes-deploy-green `
             --endpoint-name $ENDPOINT_NAME `
             --resource-group $RESOURCE_GROUP `
             --workspace-name $WORKSPACE_NAME 2>$null
@@ -59,7 +59,7 @@ function Update-Traffic {
     }
     
     # Update traffic allocation
-    $trafficString = "diabetes-prediction-deployment-blue=$BluePercent,diabetes-prediction-deployment-green=$GreenPercent"
+    $trafficString = "diabetes-deploy-blue=$BluePercent,diabetes-deploy-green=$GreenPercent"
     
     az ml online-endpoint update `
         --name $ENDPOINT_NAME `

@@ -167,7 +167,7 @@ jobs:
         
         # Check if deployment already exists
         if az ml online-deployment show \
-          --name diabetes-prediction-deployment-blue \
+          --name diabetes-deploy-blue \
           --endpoint-name diabetes-prediction-endpoint \
           --resource-group todozi-data-science-rg \
           --workspace-name todozi-ml-ws >/dev/null 2>&1; then
@@ -198,7 +198,7 @@ jobs:
         echo "🔀 Setting traffic allocation to 100%..."
         az ml online-endpoint update \
           --name diabetes-prediction-endpoint \
-          --traffic "diabetes-prediction-deployment-blue=100" \
+          --traffic "diabetes-deploy-blue=100" \
           --resource-group todozi-data-science-rg \
           --workspace-name todozi-ml-ws
         
@@ -320,7 +320,7 @@ jobs:
         echo ""
         echo "✅ Model: diabetes-model (version ${{ steps.verify_model.outputs.model_version }})"
         echo "✅ Endpoint: diabetes-prediction-endpoint"
-        echo "✅ Deployment: diabetes-prediction-deployment-blue"
+        echo "✅ Deployment: diabetes-deploy-blue"
         echo "✅ Status: Active and tested"
         echo ""
         echo "================================================================"
