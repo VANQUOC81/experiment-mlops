@@ -96,11 +96,15 @@ jobs:
         echo "🔍 Checking if diabetes-model is already registered..."
         
         # Check if the model exists in Azure ML Model Registry
-        if ! az ml model show \
+        # Use 'list' to check for any versions of the model
+        model_count=$(az ml model list \
           --name diabetes-model \
           --resource-group todozi-data-science-rg \
-          --workspace-name todozi-ml-ws >/dev/null 2>&1; then
-          
+          --workspace-name todozi-ml-ws \
+          --query "length(@)" \
+          -o tsv 2>/dev/null || echo "0")
+        
+        if [ "$model_count" -eq 0 ]; then
           echo "❌ Model 'diabetes-model' not found in Azure ML Model Registry!"
           echo ""
           echo "💡 SOLUTION: Run the training workflow first:"
@@ -111,12 +115,12 @@ jobs:
         fi
         
         # Get the latest model version
-        model_version=$(az ml model show \
+        model_version=$(az ml model list \
           --name diabetes-model \
           --resource-group todozi-data-science-rg \
           --workspace-name todozi-ml-ws \
-          --query version \
-          -o tsv | head -n 1)
+          --query "[0].version" \
+          -o tsv)
         
         echo "✅ Found registered model: diabetes-model (version $model_version)"
         echo ""
@@ -191,6 +195,10 @@ jobs:
             --resource-group todozi-data-science-rg \
             --workspace-name todozi-ml-ws
         fi
+        
+        # Wait for deployment to be ready before allocating traffic
+        echo "⏳ Waiting for deployment to be ready before traffic allocation..."
+        sleep 30
         
         # Allocate 100% of traffic to this deployment
         echo "🔀 Setting traffic allocation to 100%..."
