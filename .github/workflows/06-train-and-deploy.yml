@@ -15,19 +15,6 @@ jobs:
       
     - name: Install az ml extension
       run: az extension add -n ml -y
-    
-    # ========================================
-    # DEBUG STEP 2: Authenticate with Azure
-    # ========================================
-    - name: Determine Azure credentials
-      run: |
-        echo "Using development environment credentials"
-        echo "azure_creds=${{ secrets.AZURE_CRED_LOGIN_SP_DEV_ENV }}" >> $GITHUB_OUTPUT
-       
-      id: determine_creds
-
-
-
 
     - name: Azure login
       uses: azure/login@v1
