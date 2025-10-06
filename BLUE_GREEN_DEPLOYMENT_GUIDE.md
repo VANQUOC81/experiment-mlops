@@ -38,7 +38,7 @@ Endpoint: diabetes-prediction-endpoint
 ```bash
 # Verify blue deployment exists and is healthy
 az ml online-deployment show \
-  --name diabetes-prediction-deployment-blue \
+  --name diabetes-deploy-blue \
   --endpoint-name diabetes-prediction-endpoint \
   --resource-group todozi-data-science-rg \
   --workspace-name todozi-ml-ws
@@ -60,7 +60,7 @@ az ml online-deployment create \
   --workspace-name todozi-ml-ws
 
 # Wait for deployment to complete (5-10 minutes)
-# Check status: az ml online-deployment show --name diabetes-prediction-deployment-green --endpoint-name diabetes-prediction-endpoint
+# Check status: az ml online-deployment show --name diabetes-deploy-green --endpoint-name diabetes-prediction-endpoint
 
 # 3. Verify both deployments are healthy before allocating traffic
 az ml online-deployment list \
@@ -129,7 +129,7 @@ Endpoint: diabetes-prediction-endpoint
 ```bash
 # After confirming green is stable, delete blue
 az ml online-deployment delete \
-  --name diabetes-prediction-deployment-blue \
+  --name diabetes-deploy-blue \
   --endpoint-name diabetes-prediction-endpoint \
   --resource-group todozi-data-science-rg \
   --workspace-name todozi-ml-ws \
@@ -175,7 +175,7 @@ az ml online-endpoint update \
   --name diabetes-prediction-endpoint \
   --resource-group todozi-data-science-rg \
   --workspace-name todozi-ml-ws \
-  --traffic "diabetes-prediction-deployment-blue=90,diabetes-prediction-deployment-green=10"
+  --traffic "diabetes-deploy-blue=90,diabetes-deploy-green=10"
 ```
 
 ## 📊 Traffic Allocation Strategies
@@ -214,7 +214,7 @@ Green: 50% (permanent)
    ```bash
    # Compare response times
    az ml online-deployment show \
-     --name diabetes-prediction-deployment-blue \
+     --name diabetes-deploy-blue \
      --endpoint-name diabetes-prediction-endpoint \
      --query "request_settings"
    ```
@@ -223,7 +223,7 @@ Green: 50% (permanent)
    ```bash
    # Check deployment logs
    az ml online-deployment get-logs \
-     --name diabetes-prediction-deployment-green \
+     --name diabetes-deploy-green \
      --endpoint-name diabetes-prediction-endpoint
    ```
 
