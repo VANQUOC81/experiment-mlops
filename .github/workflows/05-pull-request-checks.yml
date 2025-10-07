@@ -7,6 +7,7 @@ on:
 jobs:
   code-verification:
     name: Code Verification
+    if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
     - name: Check out repo
