@@ -45,10 +45,10 @@ environment: azureml:AzureML-sklearn-0.24-ubuntu18.04-py37-cpu@latest
 # Options: Standard_DS2_v2, Standard_DS3_v2, Standard_F4s_v2, etc.
 # DS3_v2 = 4 vCPUs, 14 GB RAM - good for moderate traffic (~$0.19/hour)
 # DS2_v2 = 2 vCPUs, 7 GB RAM - lower cost option (~$0.10/hour)
-# Using B2s - different quota pool than DS series used by training cluster
-# B2s = 2 vCPUs, 4 GB RAM (burstable) - very low cost and stable option
+# Using D2s_v3 - different quota pool than DS series used by training cluster
+# D2s_v3 = 2 vCPUs, 8 GB RAM (general purpose) - commonly supported for ML endpoints
 # This won't conflict with DS series quota used by training
-instance_type: Standard_B2s
+instance_type: Standard_D2s_v3
 
 # Number of instances to run
 # Start with 1 instance to minimize quota usage

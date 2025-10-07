@@ -7,6 +7,7 @@ on:
 jobs:
   experiment:
     name: Train Model - Development
+    if: ${{ false }}
     runs-on: ubuntu-latest
     environment: development
     steps:
@@ -84,7 +85,7 @@ jobs:
     name: Train Model - Production
     runs-on: ubuntu-latest
     environment: production
-    needs: experiment
+    # needs: experiment
     steps:
     - name: Check out repo
       uses: actions/checkout@v4
