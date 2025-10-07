@@ -205,8 +205,8 @@ jobs:
         echo "✅ Model deployed successfully!"
         
         # Wait for deployment to be ready and check status
-        echo "⏳ Waiting for deployment to be ready..."
-        sleep 60
+        echo "⏳ Waiting for deployment to be ready (some instances need more startup time)..."
+        sleep 90
         
         # Check deployment status and logs for debugging
         echo "🔍 Checking deployment status..."

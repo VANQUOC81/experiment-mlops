@@ -83,9 +83,10 @@ jobs:
 
   production:
     name: Train Model - Production
+    if: ${{ false }}  # DISABLED FOR TESTING
     runs-on: ubuntu-latest
     environment: production
-    # needs: experiment
+    needs: experiment
     steps:
     - name: Check out repo
       uses: actions/checkout@v4
