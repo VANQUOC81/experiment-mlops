@@ -204,9 +204,44 @@ jobs:
         
         echo "✅ Model deployed successfully!"
         
-        # Wait for deployment to be ready
+        # Wait for deployment to be ready and check status
         echo "⏳ Waiting for deployment to be ready..."
         sleep 60
+        
+        # Check deployment status and logs for debugging
+        echo "🔍 Checking deployment status..."
+        deployment_status=$(az ml online-deployment show \
+          --name diabetes-deploy-blue \
+          --endpoint-name diabetes-prediction-endpoint \
+          --resource-group todozi-data-science-rg \
+          --workspace-name todozi-ml-ws \
+          --query provisioning_state \
+          -o tsv 2>/dev/null || echo "unknown")
+        
+        echo "📊 Deployment status: $deployment_status"
+        
+        if [ "$deployment_status" != "Succeeded" ]; then
+          echo "❌ Deployment failed with status: $deployment_status"
+          echo "🔍 Getting deployment logs for debugging..."
+          
+          # Try to get deployment logs
+          az ml online-deployment get-logs \
+            --name diabetes-deploy-blue \
+            --endpoint-name diabetes-prediction-endpoint \
+            --resource-group todozi-data-science-rg \
+            --workspace-name todozi-ml-ws \
+            --lines 50 || echo "Could not retrieve logs"
+          
+          echo "💡 TROUBLESHOOTING TIPS:"
+          echo "   1. Check if model is compatible with deployment environment"
+          echo "   2. Verify model was trained with same scikit-learn version"
+          echo "   3. Check Azure ML Studio for detailed error logs"
+          echo "   4. Try different instance type if memory is the issue"
+          
+          exit 1
+        fi
+        
+        echo "✅ Deployment is healthy and ready!"
       id: deploy_model
       
     # ========================================
