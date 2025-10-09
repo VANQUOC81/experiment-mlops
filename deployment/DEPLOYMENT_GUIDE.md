@@ -5,8 +5,8 @@
 ### Configuration Files
 - `src/endpoint.yml` - Endpoint configuration (see file for details)
 - `src/deployment.yml` - Deployment configuration (see file for details)
-- `src/test_endpoint.py` - Testing script
-- `src/sample_test_data.json` - Sample test data
+- `deployment/test_endpoint.py` - Testing script
+- `deployment/sample_test_data.json` - Sample test data
 
 ### Workflows
 - `.github/workflows/06-train-and-deploy.yml` - **Training + Model Registration**: Trains model and registers it in Azure ML
@@ -49,7 +49,7 @@ Copy: REST endpoint (scoring URI) and Primary Key
 
 **Test with Python**:
 ```bash
-python src/test_endpoint.py \
+python deployment/test_endpoint.py \
   --scoring-uri "YOUR_SCORING_URI" \
   --primary-key "YOUR_PRIMARY_KEY"
 ```
@@ -162,7 +162,7 @@ No! Azure ML automatically provisions compute based on `instance_type` in `deplo
 Azure ML Studio → Endpoints → diabetes-prediction-endpoint
 
 **Do I need Postman to test?**
-No! Use the Python script (`test_endpoint.py`) or the Test tab in Azure ML Studio.
+No! Use the Python script (`deployment/test_endpoint.py`) or the Test tab in Azure ML Studio.
 
 ---
 

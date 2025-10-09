@@ -1,0 +1,44 @@
+# ============================================================
+# Azure ML Ignore File
+# ============================================================
+# This file tells Azure ML which files to EXCLUDE when uploading
+# code for deployment. Only the scoring script (main.py) is needed.
+#
+# Similar to .gitignore but for Azure ML deployments
+# ============================================================
+
+# Documentation files (not needed for deployment)
+*.md
+*.mermaid
+README*
+
+# Deployment configuration files (not needed inside container)
+deployment.yml
+deployment-green.yml
+endpoint.yml
+
+# Training-related files (not needed for inference)
+job-dev.yml
+job-prod.yml
+model/train.py
+model/__pycache__/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ============================================================
+# ONLY THESE FILES SHOULD BE UPLOADED:
+# - main.py (the scoring script)
+# ============================================================
+

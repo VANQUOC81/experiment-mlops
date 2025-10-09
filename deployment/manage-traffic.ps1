@@ -4,10 +4,10 @@
 # This script helps manage traffic allocation between blue and green deployments
 #
 # Usage:
-#   .\src\manage-traffic.ps1 blue-100    # 100% blue, 0% green
-#   .\src\manage-traffic.ps1 green-100   # 0% blue, 100% green  
-#   .\src\manage-traffic.ps1 blue-90     # 90% blue, 10% green
-#   .\src\manage-traffic.ps1 status      # Show current traffic
+#   .\deployment\manage-traffic.ps1 blue-100    # 100% blue, 0% green
+#   .\deployment\manage-traffic.ps1 green-100   # 0% blue, 100% green  
+#   .\deployment\manage-traffic.ps1 blue-90     # 90% blue, 10% green
+#   .\deployment\manage-traffic.ps1 status      # Show current traffic
 # ============================================================
 
 param(
@@ -20,13 +20,13 @@ $RESOURCE_GROUP = "todozi-data-science-rg"
 $WORKSPACE_NAME = "todozi-ml-ws"
 
 function Show-Usage {
-    Write-Host "Usage: .\manage-traffic.ps1 {blue-100|green-100|blue-90|blue-75|blue-50|status}" -ForegroundColor Yellow
+    Write-Host "Usage: .\deployment\manage-traffic.ps1 {blue-100|green-100|blue-90|blue-75|blue-50|status}" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "Examples:" -ForegroundColor Cyan
-    Write-Host "  .\manage-traffic.ps1 blue-100     # All traffic to blue (rollback)" -ForegroundColor Gray
-    Write-Host "  .\manage-traffic.ps1 green-100    # All traffic to green (full switch)" -ForegroundColor Gray
-    Write-Host "  .\manage-traffic.ps1 blue-90      # 90% blue, 10% green (test green)" -ForegroundColor Gray
-    Write-Host "  .\manage-traffic.ps1 status       # Show current traffic allocation" -ForegroundColor Gray
+    Write-Host "  .\deployment\manage-traffic.ps1 blue-100     # All traffic to blue (rollback)" -ForegroundColor Gray
+    Write-Host "  .\deployment\manage-traffic.ps1 green-100    # All traffic to green (full switch)" -ForegroundColor Gray
+    Write-Host "  .\deployment\manage-traffic.ps1 blue-90      # 90% blue, 10% green (test green)" -ForegroundColor Gray
+    Write-Host "  .\deployment\manage-traffic.ps1 status       # Show current traffic allocation" -ForegroundColor Gray
 }
 
 function Update-Traffic {
@@ -129,4 +129,4 @@ Write-Host "`n💡 Next steps:" -ForegroundColor Yellow
 Write-Host "   1. Monitor your endpoint in Azure ML Studio" -ForegroundColor Gray
 Write-Host "   2. Check logs for any errors" -ForegroundColor Gray
 Write-Host "   3. Test predictions to ensure quality" -ForegroundColor Gray
-Write-Host "   4. Use '.\manage-traffic.ps1 status' to check current allocation" -ForegroundColor Gray
+Write-Host "   4. Use '.\deployment\manage-traffic.ps1 status' to check current allocation" -ForegroundColor Gray
