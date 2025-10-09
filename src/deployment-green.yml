@@ -21,6 +21,11 @@ endpoint_name: diabetes-prediction-endpoint
 # will use the same version if you redeploy
 model: azureml:diabetes-model@latest
 
+# Scoring script for MLflow model inference
+code_configuration:
+  code: .
+  scoring_script: main.py
+
 # Same environment as blue
 environment: azureml:AzureML-sklearn-0.24-ubuntu18.04-py37-cpu@latest
 

@@ -1,0 +1,53 @@
+gantt
+    title Azure ML Scoring Script Lifecycle Timeline
+    dateFormat X
+    axisFormat %Lms
+    
+    section Deployment Phase
+    Create Container          :done, deploy1, 0, 30000
+    Download Model Files      :done, deploy2, 30000, 60000
+    Copy main.py              :done, deploy3, 60000, 65000
+    Start Web Server          :done, deploy4, 65000, 70000
+    Run init function        :crit, deploy5, 70000, 75000
+    Model in Memory           :active, deploy6, 75000, 80000
+    Ready for Requests        :milestone, deploy7, 80000, 80000
+    
+    section Running State
+    Container Running         :active, running1, 80000, 500000
+    Web Server Listening      :active, running2, 80000, 500000
+    Model in RAM              :active, running3, 80000, 500000
+    
+    section Prediction Requests
+    Request 1                 :done, req1, 100000, 100100
+    Request 2                 :done, req2, 150000, 150100
+    Request 3                 :done, req3, 200000, 200100
+    Request 4                 :done, req4, 250000, 250100
+    Request 5                 :done, req5, 300000, 300100
+    More Requests             :done, req6, 350000, 500000
+
+%% ============================================================
+%% TIMING BREAKDOWN
+%% ============================================================
+%%
+%% DEPLOYMENT (ONE TIME):
+%% - Container creation: ~30 seconds
+%% - Model download: ~30 seconds  
+%% - File copying: ~5 seconds
+%% - Web server start: ~5 seconds
+%% - init() execution: ~5 seconds (loads model)
+%% - Total: ~75-80 seconds
+%%
+%% PREDICTION REQUESTS (EACH REQUEST):
+%% - HTTP request: ~10ms
+%% - JSON parsing: ~5ms
+%% - Input validation: ~5ms
+%% - Model prediction: ~50ms (using model already in RAM)
+%% - Response formatting: ~5ms
+%% - Total per request: ~75-100ms
+%%
+%% KEY POINT:
+%% - init() runs ONCE at deployment
+%% - run() runs for EVERY prediction request
+%% - Model stays in memory between requests
+%% ============================================================
+
