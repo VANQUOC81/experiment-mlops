@@ -7,7 +7,7 @@ This script tests the deployed diabetes prediction endpoint
 in Azure Machine Learning.
 
 Usage:
-    python src/test_endpoint.py \
+    python deployment/test_endpoint.py \
         --scoring-uri <endpoint-url> \
         --primary-key <api-key>
 

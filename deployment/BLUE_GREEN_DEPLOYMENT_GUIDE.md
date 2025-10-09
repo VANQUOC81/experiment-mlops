@@ -80,7 +80,7 @@ Endpoint: diabetes-prediction-endpoint
 
 ```bash
 # Move 10% traffic to green for testing
-.\src\manage-traffic.ps1 blue-90
+.\deployment\manage-traffic.ps1 blue-90
 ```
 
 **Result:**
@@ -100,7 +100,7 @@ Endpoint: diabetes-prediction-endpoint
 
 ```bash
 # Move all traffic to green
-.\src\manage-traffic.ps1 green-100
+.\deployment\manage-traffic.ps1 green-100
 ```
 
 **Result:**
@@ -114,7 +114,7 @@ Endpoint: diabetes-prediction-endpoint
 
 ```bash
 # Rollback to blue
-.\src\manage-traffic.ps1 blue-100
+.\deployment\manage-traffic.ps1 blue-100
 ```
 
 **Result:**
@@ -142,22 +142,22 @@ az ml online-deployment delete \
 
 ```powershell
 # Show current traffic allocation
-.\src\manage-traffic.ps1 status
+.\deployment\manage-traffic.ps1 status
 
 # All traffic to blue (rollback)
-.\src\manage-traffic.ps1 blue-100
+.\deployment\manage-traffic.ps1 blue-100
 
 # All traffic to green (full switch)
-.\src\manage-traffic.ps1 green-100
+.\deployment\manage-traffic.ps1 green-100
 
 # Test green with 10% traffic
-.\src\manage-traffic.ps1 blue-90
+.\deployment\manage-traffic.ps1 blue-90
 
 # Gradual rollout: 75% blue, 25% green
-.\src\manage-traffic.ps1 blue-75
+.\deployment\manage-traffic.ps1 blue-75
 
 # A/B testing: 50/50 split
-.\src\manage-traffic.ps1 blue-50
+.\deployment\manage-traffic.ps1 blue-50
 ```
 
 ### **Manual Azure CLI Commands:**
@@ -230,7 +230,7 @@ Green: 50% (permanent)
 3. **Traffic Distribution**
    ```bash
    # Monitor traffic allocation
-   .\src\manage-traffic.ps1 status
+   .\deployment\manage-traffic.ps1 status
    ```
 
 ### **Azure ML Studio Monitoring:**
@@ -300,10 +300,10 @@ model: azureml:diabetes-model:2  # Explicitly specify new version
 ### **Rollback Commands:**
 ```bash
 # Immediate rollback
-.\src\manage-traffic.ps1 blue-100
+.\deployment\manage-traffic.ps1 blue-100
 
 # Check if rollback was successful
-.\src\manage-traffic.ps1 status
+.\deployment\manage-traffic.ps1 status
 ```
 
 ## 📋 Blue-Green Checklist
