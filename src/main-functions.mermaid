@@ -1,0 +1,138 @@
+sequenceDiagram
+    participant Azure as Azure ML Service
+    participant Container as Container/Web Server
+    participant MainPy as main.py
+    participant Model as MLflow Model
+    participant Client as HTTP Client
+    
+    rect rgb(200, 230, 255)
+    Note over Azure,Model: DEPLOYMENT PHASE - init() Called Once
+    Azure->>Container: Create container with sklearn-0.24
+    Container->>Container: Start gunicorn web server
+    Container->>MainPy: Import main.py
+    Container->>MainPy: Call init()
+    activate MainPy
+    
+    MainPy->>MainPy: Get AZUREML_MODEL_DIR env variable
+    Note right of MainPy: /var/azureml-app/azureml-models/diabetes-model/{version}
+    
+    MainPy->>MainPy: Validate model directory exists
+    MainPy->>MainPy: Build model_path = AZUREML_MODEL_DIR + '/model'
+    
+    MainPy->>Model: mlflow.sklearn.load_model(model_path)
+    Model-->>MainPy: Return loaded scikit-learn model
+    
+    MainPy->>MainPy: Store model in global variable
+    Note right of MainPy: global model = LogisticRegression object
+    
+    MainPy->>MainPy: Test model with dummy data
+    MainPy->>Model: model.predict([[0,0,0,0,0,0,0,0]])
+    Model-->>MainPy: [0] (test prediction)
+    
+    MainPy->>Container: init() complete ✅
+    deactivate MainPy
+    
+    Note over Container: Container ready, model in memory
+    end
+    
+    rect rgb(255, 245, 220)
+    Note over Client,Model: PREDICTION REQUEST 1 - run() Called
+    Client->>Container: POST /score with JSON data
+    activate Container
+    Container->>MainPy: Call run(raw_data)
+    activate MainPy
+    
+    MainPy->>MainPy: Check if model is loaded
+    Note right of MainPy: Verify global 'model' exists
+    
+    MainPy->>MainPy: json.loads(raw_data)
+    Note right of MainPy: Parse: {"input_data": {"data": [[...]]}}
+    
+    MainPy->>MainPy: Validate JSON structure
+    Note right of MainPy: Check 'input_data', 'data' keys exist
+    
+    MainPy->>MainPy: Validate data format
+    Note right of MainPy: Check list format, 8 features per row
+    
+    MainPy->>MainPy: Extract input_data['data']
+    Note right of MainPy: [[9, 104, 51, 7, 24, 27.37, 1.35, 43]]
+    
+    MainPy->>Model: model.predict(input_data)
+    Note right of Model: Uses model ALREADY in memory
+    Model-->>MainPy: [0] (No diabetes)
+    
+    MainPy->>MainPy: Format response: {"predictions": [0]}
+    MainPy->>MainPy: json.dumps(result)
+    
+    MainPy->>Container: Return JSON string
+    deactivate MainPy
+    Container->>Client: HTTP 200 + JSON response
+    deactivate Container
+    Note over Client: Response time: ~100ms
+    end
+    
+    rect rgb(255, 245, 220)
+    Note over Client,Model: PREDICTION REQUEST 2 - run() Called Again
+    Client->>Container: POST /score with different data
+    activate Container
+    Container->>MainPy: Call run(raw_data)
+    activate MainPy
+    
+    Note over MainPy: Same validation steps...
+    MainPy->>Model: model.predict(new_data)
+    Note right of Model: Same model, still in memory
+    Model-->>MainPy: [1] (Has diabetes)
+    
+    MainPy->>Container: Return JSON string
+    deactivate MainPy
+    Container->>Client: HTTP 200 + JSON response
+    deactivate Container
+    Note over Client: Response time: ~100ms
+    end
+    
+    rect rgb(255, 245, 220)
+    Note over Client,Model: PREDICTION REQUEST 3 - run() Called Again
+    Client->>Container: POST /score with more data
+    Container->>MainPy: Call run(raw_data)
+    MainPy->>Model: model.predict(more_data)
+    Model-->>MainPy: [0, 1, 0] (predictions)
+    MainPy->>Container: Return JSON string
+    Container->>Client: HTTP 200 + JSON response
+    end
+    
+    Note over Container,Model: Model stays in memory for all requests ⚡
+
+    rect rgb(255, 230, 230)
+    Note over Azure,Model: SHUTDOWN PHASE (When deployment deleted)
+    Azure->>Container: Delete deployment command
+    Container->>Container: Shutdown web server
+    Container->>MainPy: Python process terminates
+    MainPy->>Model: Model removed from memory
+    Container->>Azure: Container terminated
+    end
+
+%% ============================================================
+%% FUNCTION DETAILS
+%% ============================================================
+%%
+%% init():
+%% - Called: ONCE during deployment
+%% - Purpose: Load model into global variable
+%% - Time: ~5 seconds
+%% - Output: global model variable (stays in memory)
+%% - Location: main.py lines 22-79
+%%
+%% run(raw_data):
+%% - Called: EVERY prediction request
+%% - Purpose: Process input, make predictions, return results
+%% - Time: ~100ms per request
+%% - Input: JSON string with patient data
+%% - Output: JSON string with predictions
+%% - Location: main.py lines 81-166
+%%
+%% KEY OPTIMIZATION:
+%% - Model loaded ONCE in init() (5 seconds)
+%% - Model used MANY TIMES in run() (~100ms each)
+%% - Without this: Would need to reload model every request (slow!)
+%% ============================================================
+

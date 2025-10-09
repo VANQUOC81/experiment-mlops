@@ -31,6 +31,12 @@ endpoint_name: diabetes-prediction-endpoint
 # When you register a model, this will automatically point to it
 model: azureml:diabetes-model@latest
 
+# Scoring script for MLflow model inference
+# This script handles the HTTP requests and calls the model
+code_configuration:
+  code: . # Upload files from src/ directory
+  scoring_script: main.py # Main scoring script for the model
+
 # Environment (runtime) for the deployment
 # This specifies the Docker image with Python, libraries, and dependencies
 # Using the same environment as training ensures consistency

@@ -1,0 +1,93 @@
+graph TD
+    subgraph "PHASE 1: DEPLOYMENT (ONE TIME - Takes 2-5 minutes)"
+        A[Developer triggers deployment] -->|az ml online-deployment create| B[Azure ML Service]
+        B --> C[Create Container with sklearn-0.24 environment]
+        C --> D[Download registered model from Model Registry]
+        D -->|Copy to container| E[Model files at /var/azureml-app/azureml-models/diabetes-model/VERSION/]
+        E --> F[Copy src/main.py to container]
+        F -->|Copy to| G[main.py at /var/azureml-app/main.py]
+        G --> H[Start Gunicorn Web Server on port 31311]
+        H --> I{Call init function}
+        I --> J[Load model using mlflow.sklearn.load_model]
+        J --> K[Model loaded into RAM - stays in memory]
+        K --> L[Web server ready and listening]
+        L --> M[✅ DEPLOYMENT COMPLETE - Container Running]
+    end
+
+    subgraph "PHASE 2: CONTAINER RUNNING STATE (Continuous - Hours/Days/Weeks)"
+        M --> N[Container Status: RUNNING]
+        N --> O[Web Server: LISTENING on port 31311]
+        O --> P[Model: LOADED in memory global variable]
+        P --> Q[Waiting for HTTP requests...]
+    end
+
+    subgraph "PHASE 3: PREDICTION REQUESTS (Multiple times - ~100ms each)"
+        Q -->|HTTP POST /score| R[Request 1 arrives]
+        R --> S[Web server receives JSON data]
+        S --> T[Call run raw_data function]
+        T --> U[Parse JSON input]
+        U --> V[Validate input format]
+        V --> W[Extract feature data]
+        W --> X[Call model.predict with already loaded model]
+        X --> Y[Get predictions from model]
+        Y --> Z[Format as JSON response]
+        Z --> AA[Return predictions to client]
+        AA --> AB[Response sent - ~100ms total]
+        
+        AB -->|Ready for next request| Q
+        Q -->|HTTP POST /score| AC[Request 2 arrives]
+        AC -->|Same process| T
+        Q -->|HTTP POST /score| AD[Request 3 arrives]
+        AD -->|Same process| T
+        Q -->|...| AE[More requests...]
+        AE -->|Same process| T
+    end
+
+    subgraph "KEY FUNCTIONS IN main.py"
+        INIT[init function]
+        INIT_DESC[Called: ONCE during deployment<br/>Purpose: Load model into memory<br/>Time: ~2-5 seconds<br/>Output: global model variable]
+        
+        RUN[run raw_data function]
+        RUN_DESC[Called: EVERY prediction request<br/>Purpose: Process data and make predictions<br/>Time: ~100ms<br/>Input: JSON string<br/>Output: JSON predictions]
+        
+        INIT -.-> INIT_DESC
+        RUN -.-> RUN_DESC
+    end
+
+    subgraph "MEMORY STATE"
+        MEM1[Deployment Time]
+        MEM2[After init: Model in RAM]
+        MEM3[During Requests: Model stays in RAM]
+        MEM4[Container shutdown: Memory cleared]
+        
+        MEM1 --> MEM2
+        MEM2 --> MEM3
+        MEM3 -.->|On delete deployment| MEM4
+    end
+    
+    subgraph "PHASE 4: SHUTDOWN"
+        AF[Developer deletes deployment]
+        AF --> AG[Azure ML stops container]
+        AG --> AH[Web server shuts down]
+        AH --> AI[Model removed from memory]
+        AI --> AJ[Container terminated]
+    end
+    
+    %% Connect phases to improve flow
+    Q -.->|When deployment deleted| AF
+
+    %% Styling
+    classDef deploymentPhase fill:#e1f5ff,stroke:#01579b,stroke-width:2px
+    classDef runningPhase fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef requestPhase fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef shutdownPhase fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+    classDef keyFunction fill:#e8f5e9,stroke:#1b5e20,stroke-width:3px
+    classDef memoryState fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    
+    class A,B,C,D,E,F,G,H,I,J,K,L,M deploymentPhase
+    class N,O,P,Q runningPhase
+    class R,S,T,U,V,W,X,Y,Z,AA,AB,AC,AD,AE requestPhase
+    class AF,AG,AH,AI,AJ shutdownPhase
+    class INIT,INIT_DESC,RUN,RUN_DESC keyFunction
+    class MEM1,MEM2,MEM3,MEM4 memoryState
+
