@@ -27,23 +27,23 @@ name: Deploy Model to Endpoint
 on:
   workflow_dispatch:
     inputs:
-      environment:
-        description: 'Environment to deploy to'
+      deployment_name:
+        description: 'Deployment to create/update (blue or green)'
         required: true
-        default: 'production'
+        default: 'blue'
         type: choice
         options:
-        - development
-        - production
+        - blue
+        - green
 
 jobs:
   deploy:
     name: Deploy Model to Endpoint
     runs-on: ubuntu-latest
     
-    # Use the environment specified in the workflow dispatch input
-    # This allows different environments to have different secrets and settings
-    environment: ${{ github.event.inputs.environment || 'production' }}
+    # Always use production environment for deployments
+    # Use blue-green deployments for safe rollouts instead of separate environments
+    environment: production
     
     steps:
     # ========================================
@@ -60,25 +60,16 @@ jobs:
     # ========================================
     # STEP 2: Authenticate with Azure
     # ========================================
-    - name: Azure login - Development
-      if: github.event.inputs.environment == 'development'
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CRED_LOGIN_SP_DEV_ENV }}
-        
-    - name: Azure login - Production
-      if: github.event.inputs.environment == 'production'
+    - name: Azure login
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CRED_LOGIN_SP_PROD_ENV }}
         
-    - name: Display authentication info
+    - name: Display deployment info
       run: |
-        if [ "${{ github.event.inputs.environment }}" = "development" ]; then
-          echo "✅ Authenticated with DEVELOPMENT environment"
-        else
-          echo "✅ Authenticated with PRODUCTION environment"
-        fi
+        echo "✅ Authenticated with Azure ML workspace: todozi-ml-ws"
+        echo "🎯 Target endpoint: diabetes-prediction-endpoint"
+        echo "🚀 Deploying to: diabetes-deploy-${{ github.event.inputs.deployment_name }}"
         
     # ========================================
     # STEP 3: Verify model is already registered
@@ -165,9 +156,21 @@ jobs:
       run: |
         echo "🚀 Deploying model to endpoint..."
         
+        # Determine which deployment file to use based on selection
+        DEPLOYMENT_NAME="diabetes-deploy-${{ github.event.inputs.deployment_name }}"
+        
+        if [ "${{ github.event.inputs.deployment_name }}" = "green" ]; then
+          DEPLOYMENT_FILE="src/deployment-green.yml"
+        else
+          DEPLOYMENT_FILE="src/deployment.yml"
+        fi
+        
+        echo "📝 Using deployment file: $DEPLOYMENT_FILE"
+        echo "📦 Deployment name: $DEPLOYMENT_NAME"
+        
         # Check if deployment already exists
         if az ml online-deployment show \
-          --name diabetes-deploy-blue \
+          --name $DEPLOYMENT_NAME \
           --endpoint-name diabetes-prediction-endpoint \
           --resource-group todozi-data-science-rg \
           --workspace-name todozi-ml-ws >/dev/null 2>&1; then
@@ -176,7 +179,7 @@ jobs:
           
           # Update the existing deployment with the new model
           az ml online-deployment update \
-            --file src/deployment.yml \
+            --file $DEPLOYMENT_FILE \
             --resource-group todozi-data-science-rg \
             --workspace-name todozi-ml-ws
           
@@ -185,7 +188,7 @@ jobs:
           
           # Create a new deployment
           az ml online-deployment create \
-            --file src/deployment.yml \
+            --file $DEPLOYMENT_FILE \
             --resource-group todozi-data-science-rg \
             --workspace-name todozi-ml-ws
         fi
@@ -194,13 +197,66 @@ jobs:
         echo "⏳ Waiting for deployment to be ready before traffic allocation..."
         sleep 30
         
-        # Allocate 100% of traffic to this deployment
-        echo "🔀 Setting traffic allocation to 100%..."
+        # Check which deployments exist (Azure ML requires all deployments to be specified in traffic allocation)
+        echo "🔍 Checking existing deployments..."
+        BLUE_EXISTS=false
+        GREEN_EXISTS=false
+        
+        if az ml online-deployment show \
+          --name diabetes-deploy-blue \
+          --endpoint-name diabetes-prediction-endpoint \
+          --resource-group todozi-data-science-rg \
+          --workspace-name todozi-ml-ws >/dev/null 2>&1; then
+          BLUE_EXISTS=true
+          echo "   ✓ Blue deployment exists"
+        fi
+        
+        if az ml online-deployment show \
+          --name diabetes-deploy-green \
+          --endpoint-name diabetes-prediction-endpoint \
+          --resource-group todozi-data-science-rg \
+          --workspace-name todozi-ml-ws >/dev/null 2>&1; then
+          GREEN_EXISTS=true
+          echo "   ✓ Green deployment exists"
+        fi
+        
+        # Build traffic allocation string based on what exists
+        # Azure ML requires: all deployments specified, traffic sums to 100%
+        if [ "${{ github.event.inputs.deployment_name }}" = "blue" ]; then
+          if [ "$GREEN_EXISTS" = true ]; then
+            echo "🔀 Setting traffic: blue=100%, green=0%"
+            TRAFFIC_STRING="diabetes-deploy-blue=100,diabetes-deploy-green=0"
+          else
+            echo "🔀 Setting traffic: blue=100%"
+            TRAFFIC_STRING="diabetes-deploy-blue=100"
+          fi
+        else
+          # Deploying green
+          if [ "$BLUE_EXISTS" = true ]; then
+            echo "🔀 Setting traffic: blue=100%, green=0% (green ready for testing)"
+            TRAFFIC_STRING="diabetes-deploy-blue=100,diabetes-deploy-green=0"
+          else
+            echo "🔀 Setting traffic: green=100%"
+            TRAFFIC_STRING="diabetes-deploy-green=100"
+          fi
+        fi
+        
+        # Apply traffic allocation
         az ml online-endpoint update \
           --name diabetes-prediction-endpoint \
-          --traffic "diabetes-deploy-blue=100" \
+          --traffic "$TRAFFIC_STRING" \
           --resource-group todozi-data-science-rg \
           --workspace-name todozi-ml-ws
+        
+        echo "✅ Traffic allocation updated: $TRAFFIC_STRING"
+        
+        if [ "${{ github.event.inputs.deployment_name }}" = "green" ] && [ "$BLUE_EXISTS" = true ]; then
+          echo ""
+          echo "💡 Next steps:"
+          echo "   1. Test green deployment manually"
+          echo "   2. Use .\deployment\manage-traffic.ps1 to gradually shift traffic"
+          echo "   3. Example: .\deployment\manage-traffic.ps1 blue-90 (10% to green)"
+        fi
         
         echo "✅ Model deployed successfully!"
         
@@ -209,9 +265,11 @@ jobs:
         sleep 90
         
         # Check deployment status and logs for debugging
-        echo "🔍 Checking deployment status..."
+        DEPLOYMENT_NAME="diabetes-deploy-${{ github.event.inputs.deployment_name }}"
+        
+        echo "🔍 Checking deployment status for $DEPLOYMENT_NAME..."
         deployment_status=$(az ml online-deployment show \
-          --name diabetes-deploy-blue \
+          --name $DEPLOYMENT_NAME \
           --endpoint-name diabetes-prediction-endpoint \
           --resource-group todozi-data-science-rg \
           --workspace-name todozi-ml-ws \
@@ -226,7 +284,7 @@ jobs:
           
           # Try to get deployment logs
           az ml online-deployment get-logs \
-            --name diabetes-deploy-blue \
+            --name $DEPLOYMENT_NAME \
             --endpoint-name diabetes-prediction-endpoint \
             --resource-group todozi-data-science-rg \
             --workspace-name todozi-ml-ws \
@@ -355,7 +413,7 @@ jobs:
         echo ""
         echo "✅ Model: diabetes-model (version ${{ steps.verify_model.outputs.model_version }})"
         echo "✅ Endpoint: diabetes-prediction-endpoint"
-        echo "✅ Deployment: diabetes-deploy-blue"
+        echo "✅ Deployment: diabetes-deploy-${{ github.event.inputs.deployment_name }}"
         echo "✅ Status: Active and tested"
         echo ""
         echo "================================================================"
