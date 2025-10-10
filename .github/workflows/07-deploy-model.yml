@@ -197,19 +197,65 @@ jobs:
         echo "⏳ Waiting for deployment to be ready before traffic allocation..."
         sleep 30
         
-        # For blue deployment, allocate 100% traffic
-        # For green deployment, start with 0% traffic (manual traffic shift later)
+        # Check which deployments exist (Azure ML requires all deployments to be specified in traffic allocation)
+        echo "🔍 Checking existing deployments..."
+        BLUE_EXISTS=false
+        GREEN_EXISTS=false
+        
+        if az ml online-deployment show \
+          --name diabetes-deploy-blue \
+          --endpoint-name diabetes-prediction-endpoint \
+          --resource-group todozi-data-science-rg \
+          --workspace-name todozi-ml-ws >/dev/null 2>&1; then
+          BLUE_EXISTS=true
+          echo "   ✓ Blue deployment exists"
+        fi
+        
+        if az ml online-deployment show \
+          --name diabetes-deploy-green \
+          --endpoint-name diabetes-prediction-endpoint \
+          --resource-group todozi-data-science-rg \
+          --workspace-name todozi-ml-ws >/dev/null 2>&1; then
+          GREEN_EXISTS=true
+          echo "   ✓ Green deployment exists"
+        fi
+        
+        # Build traffic allocation string based on what exists
+        # Azure ML requires: all deployments specified, traffic sums to 100%
         if [ "${{ github.event.inputs.deployment_name }}" = "blue" ]; then
-          echo "🔀 Setting traffic allocation: 100% to blue..."
-          az ml online-endpoint update \
-            --name diabetes-prediction-endpoint \
-            --traffic "diabetes-deploy-blue=100" \
-            --resource-group todozi-data-science-rg \
-            --workspace-name todozi-ml-ws
+          if [ "$GREEN_EXISTS" = true ]; then
+            echo "🔀 Setting traffic: blue=100%, green=0%"
+            TRAFFIC_STRING="diabetes-deploy-blue=100,diabetes-deploy-green=0"
+          else
+            echo "🔀 Setting traffic: blue=100%"
+            TRAFFIC_STRING="diabetes-deploy-blue=100"
+          fi
         else
-          echo "🔀 Green deployment created with 0% traffic (for testing)"
-          echo "💡 Use .\deployment\manage-traffic.ps1 to shift traffic to green"
-          echo "   Example: .\deployment\manage-traffic.ps1 blue-90 (10% to green)"
+          # Deploying green
+          if [ "$BLUE_EXISTS" = true ]; then
+            echo "🔀 Setting traffic: blue=100%, green=0% (green ready for testing)"
+            TRAFFIC_STRING="diabetes-deploy-blue=100,diabetes-deploy-green=0"
+          else
+            echo "🔀 Setting traffic: green=100%"
+            TRAFFIC_STRING="diabetes-deploy-green=100"
+          fi
+        fi
+        
+        # Apply traffic allocation
+        az ml online-endpoint update \
+          --name diabetes-prediction-endpoint \
+          --traffic "$TRAFFIC_STRING" \
+          --resource-group todozi-data-science-rg \
+          --workspace-name todozi-ml-ws
+        
+        echo "✅ Traffic allocation updated: $TRAFFIC_STRING"
+        
+        if [ "${{ github.event.inputs.deployment_name }}" = "green" ] && [ "$BLUE_EXISTS" = true ]; then
+          echo ""
+          echo "💡 Next steps:"
+          echo "   1. Test green deployment manually"
+          echo "   2. Use .\deployment\manage-traffic.ps1 to gradually shift traffic"
+          echo "   3. Example: .\deployment\manage-traffic.ps1 blue-90 (10% to green)"
         fi
         
         echo "✅ Model deployed successfully!"
