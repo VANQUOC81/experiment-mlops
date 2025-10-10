@@ -3,14 +3,35 @@
 ## What Was Created
 
 ### Configuration Files
-- `src/endpoint.yml` - Endpoint configuration (see file for details)
-- `src/deployment.yml` - Deployment configuration (see file for details)
+- `src/endpoint.yml` - Endpoint configuration
+- `src/deployment.yml` - **Blue deployment** configuration
+- `src/deployment-green.yml` - **Green deployment** configuration
+- `src/main.py` - Scoring script (handles HTTP requests to model)
 - `deployment/test_endpoint.py` - Testing script
-- `deployment/sample_test_data.json` - Sample test data
+- `deployment/manage-traffic.ps1` - Traffic management script
 
 ### Workflows
 - `.github/workflows/06-train-and-deploy.yml` - **Training + Model Registration**: Trains model and registers it in Azure ML
-- `.github/workflows/07-deploy-model.yml` - **Deployment Only**: Deploys already-registered model to endpoint
+- `.github/workflows/07-deploy-model.yml` - **Deployment**: Deploys blue or green deployment
+
+### How Deployment Files Work
+
+```
+GitHub Actions: Deploy Model → Select "blue" or "green"
+                    ↓
+        ┌───────────┴───────────┐
+        │                       │
+    Select "blue"           Select "green"
+        ↓                       ↓
+Uses deployment.yml     Uses deployment-green.yml
+        ↓                       ↓
+Creates                 Creates
+diabetes-deploy-blue    diabetes-deploy-green
+        ↓                       ↓
+Traffic: 100%          Traffic: 0%
+```
+
+**Result**: Both deploy to the SAME endpoint, different deployment slots!
 
 ---
 

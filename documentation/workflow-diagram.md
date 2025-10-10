@@ -2,128 +2,151 @@
 
 ## Complete CI/CD Pipeline Flow (Training + Deployment)
 
+> **Note**: This diagram shows the normal workflow when all jobs are enabled (development, production, PR checks).
+
 ```mermaid
 graph TD
     A[Push to main] --> B[Development Job Starts]
     B --> C[Submit Azure ML Dev Job]
-    C --> D[Poll Azure ML Status Every 30s]
-    D --> E{Azure ML Dev Complete?}
+    C --> D[Poll Dev Job Status Every 30s]
+    D --> E{Dev Job Complete?}
     E -->|❌ Failed| F[GitHub Actions FAILS ❌]
     E -->|⏳ Running| D
     E -->|✅ Success| G[Dev Job SUCCESS ✅]
+    
     G --> H[Production Job Waits for Approval]
     H --> I[Manual Approval Required]
     I --> J[Submit Azure ML Prod Job]
-    J --> K[Poll Azure ML Prod Status Every 30s]
-    K --> L{Azure ML Prod Complete?}
+    J --> K[Poll Prod Job Status Every 30s]
+    K --> L{Prod Job Complete?}
     L -->|❌ Failed| M[GitHub Actions FAILS ❌]
     L -->|⏳ Running| K
     L -->|✅ Success| N[Training SUCCESS ✅]
     N --> O[Register Model in Azure ML]
-    O --> P[Model Registered]
+    O --> P[Model Registered in Model Registry]
     
     P --> Q[Manual: Deploy Model Workflow]
-    Q --> R[Verify Model Already Registered]
-    R --> S{Model Exists?}
-    S -->|❌ No| T[ERROR: Run Training First]
-    S -->|✅ Yes| U[Create/Update Endpoint]
-    U --> V[Deploy Model to Endpoint]
-    V --> W[Allocate 100% Traffic]
-    W --> X[Automatic Endpoint Test]
-    X --> Y{Test Passed?}
-    Y -->|❌ Failed| Z[Deployment FAILS ❌]
-    Y -->|✅ Success| AA[🎉 Model Live in Production]
+    Q --> R[Select: Blue or Green Deployment?]
+    R -->|Blue| S[Use deployment.yml]
+    R -->|Green| T[Use deployment-green.yml]
+    S --> U[Verify Model Exists]
+    T --> U
+    U --> V{Model Exists?}
+    V -->|❌ No| W[ERROR: Run Training First]
+    V -->|✅ Yes| X[Create/Update Endpoint]
+    X --> Y[Deploy to Selected Slot]
+    Y --> Z{Blue or Green?}
+    Z -->|Blue| AA[Set Traffic: Blue=100%]
+    Z -->|Green| AB[Set Traffic: Green=0%]
+    AA --> AC[Automatic Endpoint Test]
+    AB --> AC
+    AC --> AD{Test Passed?}
+    AD -->|❌ Failed| AE[Deployment FAILS ❌]
+    AD -->|✅ Success| AF[🎉 Deployment Successful]
     
-    AA --> BB[Test Options]
-    BB --> BC[Azure ML Studio Test Tab]
-    BB --> BD[Python test_endpoint.py]
-    BB --> BE[cURL or Postman]
+    AF --> AG[Test Options]
+    AG --> AH[Azure ML Studio Test Tab]
+    AG --> AI[Python test_endpoint.py]
+    AG --> AJ[cURL or Postman]
     
-    AA --> BF[Blue-Green Deployment Ready]
-    BF --> BG[New Model Version Available?]
-    BG -->|Yes| BH[Deploy Green with New Model]
-    BG -->|No| BI[Keep Current Blue Deployment]
+    AF --> AK{Need Blue-Green?}
+    AK -->|No| AL[Keep Single Deployment]
+    AK -->|Yes - New Model| AM[Deploy Green Deployment]
     
-    BH --> BJ[Set Green to 0% Traffic]
-    BJ --> BK[Test Green with 10% Traffic]
-    BK --> BL{Green Performance OK?}
-    BL -->|❌ Issues| BM[Rollback to Blue 100%]
-    BL -->|✅ Good| BN[Gradual Traffic Shift]
+    AM --> AN[GitHub: Deploy Model → Select Green]
+    AN --> AO[Green Deployed with 0% Traffic]
+    AO --> AP[LOCAL: Test Green Manually]
+    AP --> AQ{Green Works?}
+    AQ -->|❌ Failed| AR[Delete Green, Fix Issues]
+    AQ -->|✅ Good| AS[LOCAL: Shift Traffic Gradually]
     
-    BN --> BO[Blue 75% → Green 25%]
-    BO --> BP{Still Good?}
-    BP -->|✅ Yes| BQ[Blue 50% → Green 50%]
-    BP -->|❌ Issues| BM
+    AS --> AT[LOCAL: manage-traffic.ps1 blue-90]
+    AT --> AU[Monitor 30 min]
+    AU --> AV{Still Good?}
+    AV -->|❌ Issues| AW[LOCAL: Rollback blue-100]
+    AV -->|✅ Yes| AX[LOCAL: manage-traffic.ps1 blue-75]
     
-    BQ --> BR[Blue 0% → Green 100%]
-    BR --> BS[Delete Old Blue Deployment]
+    AX --> AY[Monitor 30 min]
+    AY --> AZ{Still Good?}
+    AZ -->|❌ Issues| AW
+    AZ -->|✅ Yes| BA[LOCAL: manage-traffic.ps1 green-100]
     
-    BM --> BT[Investigate Green Issues]
-    BT --> BU[Fix and Redeploy Green]
-    BU --> BK
+    BA --> BB[Monitor 1-2 hours]
+    BB --> BC{Green Stable?}
+    BC -->|❌ Issues| AW
+    BC -->|✅ Yes| BD[LOCAL: Delete Blue Deployment]
     
-    BS --> BV[🎉 Blue-Green Complete]
-    BI --> BV
+    BD --> BE[💰 Cost Back to Normal]
+    BE --> BF[🎉 Blue-Green Complete]
+    
+    AW --> BG[Investigate Issues]
+    BG --> BH[Fix and Redeploy]
+    AR --> BG
+    
+    AL --> BF
     
     style A fill:#e1f5fe
     style F fill:#ffebee
     style M fill:#ffebee
-    style T fill:#ffebee
-    style Z fill:#ffebee
-    style BM fill:#ffebee
+    style W fill:#ffebee
+    style AE fill:#ffebee
+    style AR fill:#ffebee
+    style AW fill:#ffebee
     style G fill:#e8f5e8
     style N fill:#e8f5e8
-    style P fill:#e1f0ff
-    style AA fill:#c8e6c9
-    style BV fill:#c8e6c9
+    style P fill:#e8f5e8
+    style AF fill:#c8e6c9
+    style BF fill:#c8e6c9
     style I fill:#fff3e0
     style Q fill:#fff3e0
-    style BF fill:#fff3e0
-    style BH fill:#e3f2fd
-    style BJ fill:#e3f2fd
-    style BK fill:#e3f2fd
-    style BN fill:#e3f2fd
-    style BO fill:#e3f2fd
-    style BQ fill:#e3f2fd
-    style BR fill:#e3f2fd
-    style BS fill:#e3f2fd
+    style R fill:#fff3e0
+    style AM fill:#e3f2fd
+    style AN fill:#e3f2fd
+    style AS fill:#e3f2fd
+    style AT fill:#e3f2fd
+    style AX fill:#e3f2fd
+    style BA fill:#e3f2fd
 ```
 
 ## Workflow Stages
 
-### Stage 1: Training Pipeline (Automated)
+### Stage 1: Training Pipeline
 1. **Development Training**: Triggered on push to main
-   - Submits Azure ML job with dev data
-   - Polls for completion every 30 seconds
-   - Must succeed before proceeding
+   - Uses diabetes-dev-folder data
+   - Validates model training works
+   - Must succeed before production
 
 2. **Production Training**: Requires manual approval
+   - Uses diabetes-prod-folder data
+   - Trains with production data
+   - Registers model in Model Registry
    - Waits for approval in GitHub Actions
    - Submits Azure ML job with production data
    - Polls for completion every 30 seconds
    - Automatically registers model on success
 
-### Stage 2: Deployment Pipeline (Manual Trigger)
-3. **Model Deployment**: Run via GitHub Actions workflow
-   - Finds latest completed production job
-   - Registers model from job output
-   - Creates or updates managed endpoint
-   - Deploys model with traffic allocation
-   - Automatically tests the endpoint
+### Stage 2: Deployment Pipeline
+1. **Manual Deployment Trigger**: Run from GitHub Actions
+   - Select: Blue or Green deployment
+   - Blue → Uses `src/deployment.yml` → Creates `diabetes-deploy-blue` (100% traffic)
+   - Green → Uses `src/deployment-green.yml` → Creates `diabetes-deploy-green` (0% traffic)
 
-4. **Testing & Validation**
-   - Azure ML Studio Test tab (GUI)
-   - Python script (`test_endpoint.py`)
-   - cURL or Postman (API testing)
+2. **Deployment Process**:
+   - Verifies model is registered
+   - Creates/updates endpoint
+   - Deploys to selected slot (blue or green)
+   - Sets initial traffic allocation
+   - Tests endpoint automatically
 
-### Stage 3: Blue-Green Deployment (Optional)
-5. **Blue-Green Strategy**: When new model versions are available
-   - Deploy green deployment with new model (0% traffic)
-   - Test green with 10% traffic allocation
-   - Monitor performance and validate results
-   - Gradual traffic shift: 25% → 50% → 100%
-   - Rollback to blue if issues detected
-   - Clean up old blue deployment after successful switch
+### Stage 3: Traffic Management (LOCAL)
+1. **After Green Deployment**: Manage traffic locally using PowerShell script
+   - `.\deployment\manage-traffic.ps1 blue-90` (10% to green)
+   - Monitor metrics for 30 minutes
+   - Gradually increase: 25% → 50% → 100%
+   - Delete old deployment to save costs
+
+2. **Rollback if Needed**: 
+   - `.\deployment\manage-traffic.ps1 blue-100` (instant rollback)
 
 ## Key Features
 
