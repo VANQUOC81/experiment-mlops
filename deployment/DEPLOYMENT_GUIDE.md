@@ -1,5 +1,7 @@
 # Deploy and Test Model
 
+> **📖 Important**: Before deploying, read [QUOTA_AND_INSTANCE_SELECTION_GUIDE.md](QUOTA_AND_INSTANCE_SELECTION_GUIDE.md) to understand quota limits and choose the right VM instance type.
+
 ## What Was Created
 
 ### Configuration Files
