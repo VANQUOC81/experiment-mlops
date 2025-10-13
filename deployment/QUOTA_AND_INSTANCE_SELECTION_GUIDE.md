@@ -318,6 +318,15 @@ GitHub Actions → Deploy Model → Select: green
 
 ## 📝 Summary
 
+**Simple Rule:**
+numberOfCores = What the VM has (fixed, same for everyone)
+Limit = How many vCPUs you can use from that family (yours specifically)
+Check both:
+1. Azure ML docs → Find numberOfCores for the VM
+2. Run **az vm list-usage** → Find your Limit for that family
+3. Calculate: (numberOfCores + reservation) ≤ Limit?
+For E2s_v3: (2 + 2) = 4 ≤ 6 ✅ It fits!
+
 **The Simple Version:**
 
 1. **Family limits** count actual vCPUs (8, 4, 2)
