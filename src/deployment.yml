@@ -47,12 +47,8 @@ environment: azureml:AzureML-sklearn-0.24-ubuntu18.04-py37-cpu@latest
 # IMPORTANT: Azure ML automatically creates this compute for you!
 # You do NOT need to manually create compute instances in Azure ML Studio
 # This is different from training jobs which use pre-created compute clusters
-#
-# Options: Standard_F4s_v2, Standard_F8s_v2, Standard_F16s_v2, etc.
-# Using F8s_v2 - larger VM to avoid container crashes per Azure ML documentation
 # https://learn.microsoft.com/en-us/azure/machine-learning/reference-managed-online-endpoints-vm-sku-list?view=azureml-api-2
-# Azure warns that F2s_v2 and F4s_v2 may be too small and cause container termination
-instance_type: STANDARD_E4S_V3
+instance_type: Standard_E4s_v3
 
 # Number of instances to run
 # Start with 1 instance to minimize quota usage
