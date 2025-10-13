@@ -33,7 +33,7 @@ environment: azureml:AzureML-sklearn-0.24-ubuntu18.04-py37-cpu@latest
 # IMPORTANT: Must match blue deployment for fair comparison!
 # Using same instance type ensures performance testing is accurate
 # Using F8s_v2 - larger VM to avoid container crashes per Azure ML documentation
-instance_type: Standard_F8s_v2
+instance_type: STANDARD_E4S_V3
 instance_count: 1
 
 # Same request settings as blue
