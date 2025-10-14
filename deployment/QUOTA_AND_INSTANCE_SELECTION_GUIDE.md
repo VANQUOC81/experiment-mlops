@@ -1,345 +1,181 @@
-# Azure ML Quota & Instance Selection Guide
+# How to Choose VM Instance Type for Azure ML Deployments
 
-## 🎯 The Simple Truth
+## 🎯 The 3-Step Process
 
-**Two quota limits you must understand:**
+### **Step 1: Check Your Quota Limits**
 
-1. **Family Limit** - How many vCPUs you can use from a specific VM family (e.g., FSv2: 10)
-2. **Total Regional Limit** - Maximum vCPUs across ALL families in your region (e.g., 16)
+**Azure Portal:**
+1. Go to: **Subscriptions** → Your subscription → **Usage + quotas**
+2. Filter: **Provider** = `Microsoft.MachineLearningServices`, **Location** = `South India`
+3. Look at all the quota limits
 
-**Azure's Hidden Trick:**
-- Reserves extra quota for updates (20-100% depending on VM type)
-- This reservation counts toward Total Regional limit, NOT family limit
-
----
-
-## 📊 Your Current Quota (Real Numbers)
-
-### **What You Have:**
-
-```
-Region: South India (your workspace location)
-
-┌─────────────────────────────────────────────────────┐
-│ TOTAL REGIONAL QUOTA: 16 vCPUs (MASTER LIMIT)      │
-└─────────────────────────────────────────────────────┘
-              ↓ Must fit everything below
-┌─────────────┬─────────────┬─────────────┬──────────┐
-│ DSv2 Family │ FSv2 Family │ ESv3 Family │ DASv4    │
-│ Limit: 6    │ Limit: 10   │ Limit: 10   │ Limit:20 │
-│ Used: 2     │ Used: 0     │ Used: 0     │ Used: 0  │
-└─────────────┴─────────────┴─────────────┴──────────┘
-
-What's using the 2 vCPUs in DSv2?
-└─ Training cluster: my-compute-cluster (Standard_DS11_v2)
-```
-
-| Quota Type | Used | Limit | Available |
-|------------|------|-------|-----------|
-| **Total Regional** | 2 | 16 | **14 vCPUs** |
-| **DSv2 Family** | 2 | 6 | 4 vCPUs |
-| **FSv2 Family** | 0 | 10 | 10 vCPUs |
-| **ESv3 Family** | 0 | 10 | 10 vCPUs |
-
----
-
-## 🔑 How Azure Counts Quota
-
-### **The Two-Level Check:**
-
-**Level 1: Family Limit (Counts Actual vCPUs Only)**
-```
-Example: Deploy F8s_v2 (8 vCPUs)
-├─ FSv2 Family check: 8 ≤ 10 ✅ PASS
-└─ Counts only the 8 actual vCPUs, NOT reservation
-```
-
-**Level 2: Total Regional Limit (Counts Actual + Reserved)**
-```
-Example: Deploy F8s_v2 (8 vCPUs)
-├─ Actual vCPUs: 8
-├─ Azure reserves: 8 (100% reservation)
-├─ Total consumed: 16 vCPUs
-├─ Regional check: 16 ≤ 16 ✅ PASS (exactly at limit!)
-└─ Counts BOTH actual AND reservation
-```
-
-### **Visual Example:**
-
-```
-Deploy 1 × F8s_v2:
-
-Family Limit (FSv2):
-┌──────────────────┐
-│ ████████░░ 8/10  │ ← Counts 8 vCPUs only
-└──────────────────┘
-
-Total Regional Limit:
-┌────────────────────────────────┐
-│ ████████████████ 16/16 (100%)  │ ← Counts 8 + 8 reserved = 16
-└────────────────────────────────┘
-```
-
----
-
-## ⚠️ Azure's Reservation System Explained
-
-### **What Azure Does:**
-
-```
-You request: 1 instance of F8s_v2 (8 vCPUs)
-
-Azure allocates:
-├─ Your instance: 8 vCPUs (what you use)
-├─ Reserved capacity: 8 vCPUs (for updates/upgrades)
-└─ Total quota consumed: 16 vCPUs
-
-Why?
-└─ Allows zero-downtime updates without extra quota requests
-```
-
-### **Reservation Rates (Estimated from Testing):**
-
-| VM Type | vCPUs | Reservation | Total Quota Consumed |
-|---------|-------|-------------|----------------------|
-| **F8s_v2** | 8 | ~100% (8 vCPUs) | **16 vCPUs** |
-| **F4s_v2** | 4 | ~100% (4 vCPUs) | **8 vCPUs** |
-| **E4s_v3** | 4 | Unknown (assume 100%) | **8 vCPUs** |
-| **E2s_v3** | 2 | Unknown (assume 100%) | **4 vCPUs** |
-
-**Safety Rule**: Always assume 100% reservation when planning!
-
----
-
-## 🎯 Instance Selection for Your Setup
-
-### **Scenario 1: Single Deployment (Blue Only)**
-
-**Your Current Working Setup:**
-```yaml
-instance_type: Standard_F8s_v2  # 8 vCPUs, 16 GB RAM
-instance_count: 1
-
-Quota Impact:
-├─ FSv2 Family: 8/10 ✅
-├─ Total Regional: 16/16 ✅ (maxed out!)
-└─ Cost: ~$0.34/hour
-```
-
-**Works because:**
-- Family limit: 8 ≤ 10 ✅
-- Total regional: 2 (training) + 16 (deployment with reserve) = 18... 
-
-**Wait, that's wrong! Let me recalculate...**
-
-Actually, your training succeeded, so the training cluster must use **separate quota** or the calculation is:
-- Total Regional for deployments: 16 (doesn't include training)
-- F8s_v2 with reservation: 16
-- Result: 16/16 ✅
-
----
-
-### **Scenario 2: Blue-Green Deployments**
-
-**Problem:**
-```
-Blue (F8s_v2): 8 + 8 reserved = 16 vCPUs
-Green (F8s_v2): 8 + 8 reserved = 16 vCPUs
-Total needed: 32 vCPUs
-Your limit: 16 vCPUs ❌ Won't fit!
-```
-
-**Solution: Use E2s_v3**
-```yaml
-instance_type: Standard_E2s_v3  # 2 vCPUs, 16 GB RAM
-instance_count: 1
-
-Blue + Green quota:
-├─ Blue: 2 + 2 reserved = 4 vCPUs
-├─ Green: 2 + 2 reserved = 4 vCPUs
-├─ Total: 8 vCPUs
-├─ Check: 8 ≤ 16 ✅ Fits easily!
-└─ Cost: ~$0.26/hour for both
-
-Benefits:
-✅ High memory (16 GB) - prevents crashes
-✅ Low quota usage
-✅ Separate ESv3 quota pool
-```
-
----
-
-## 📋 Simple Selection Guide
-
-### **Use This Decision Tree:**
-
-```
-Do you need Blue-Green deployments?
-
-NO (Blue only):
-└─ Use: Standard_F8s_v2 (8 vCPUs, 16 GB RAM)
-   Cost: $0.34/hour
-   Quota: Uses all 16 vCPUs available
-
-YES (Blue + Green):
-└─ Use: Standard_E2s_v3 (2 vCPUs, 16 GB RAM)
-   Cost: $0.26/hour for both
-   Quota: Uses only 8 vCPUs total
-```
-
-**That's it!** Two simple choices based on your needs.
-
----
-
-## 🔍 How to Check Quota (Commands)
-
-### **Before Deploying, Run These:**
-
+**Or via Command Line:**
 ```bash
-# 1. Check total available quota
+az vm list-usage --location southindia -o table
+```
+
+**What to look for:**
+
+| Quota Name | Usage/Limit | What This Means |
+|------------|-------------|-----------------|
+| **Total Cluster Dedicated Regional vCPUs** | 4/16 | Maximum 16 vCPUs total across everything |
+| **Standard ESv3 Family vCPUs** | 4/6 | Maximum 6 vCPUs for E-series VMs |
+| **Standard FSv2 Family vCPUs** | 0/10 | Maximum 10 vCPUs for F-series VMs |
+| **Standard DASv4 Family vCPUs** | 0/20 | Maximum 20 vCPUs for DAS-series VMs |
+
+---
+
+### **Step 2: Find Families with High Limits**
+
+**Look for families with Limit ≥ 12 vCPUs** (these can fit blue-green deployments)
+
+**Example from your portal:**
+```
+✅ DASv4: 0/20 - Has 20 vCPUs available (GOOD for blue-green!)
+✅ FSv2: 0/10 - Has 10 vCPUs available
+❌ ESv3: 4/6 - Only 2 vCPUs left (NOT enough)
+❌ DSv2: 2/6 - Only 4 vCPUs left (shares with training)
+```
+
+---
+
+### **Step 3: Pick a Supported VM from That Family**
+
+Go to [Azure ML VM SKU list](https://learn.microsoft.com/en-us/azure/machine-learning/reference-managed-online-endpoints-vm-sku-list?view=azureml-api-2)
+
+**Find the family you chose, then pick a VM:**
+
+**Example: DASv4 family has 20 vCPUs available**
+
+| VM Name | numberOfCores | For Blue-Green? |
+|---------|---------------|-----------------|
+| Standard_D2as_v4 | 2 | 2×2×2 = 8 vCPUs ✅ Fits! |
+| Standard_D4as_v4 | 4 | 4×2×2 = 16 vCPUs ✅ Fits! |
+| Standard_D8as_v4 | 8 | 8×2×2 = 32 vCPUs ❌ Over limit |
+
+**Calculation:** `(numberOfCores × 2 for reservation) × 2 deployments`
+
+---
+
+## 💡 Simple Formula
+
+```
+Blue-Green Quota Needed = (VM cores) × 2 × 2
+
+Examples:
+├─ 2-core VM: 2 × 2 × 2 = 8 vCPUs needed
+├─ 4-core VM: 4 × 2 × 2 = 16 vCPUs needed
+└─ 8-core VM: 8 × 2 × 2 = 32 vCPUs needed
+
+Pick a VM where: Quota needed ≤ Family limit
+```
+
+---
+
+## 🎯 Quick Recommendation
+
+### **Your Current Situation:**
+
+| Family | Your Limit | Available | Can Fit Blue-Green? |
+|--------|------------|-----------|---------------------|
+| **ESv3** | 6 | 2 (4 used) | ❌ No - E2s_v3 needs 8 total |
+| **FSv2** | 10 | 10 | ✅ Yes - F4s_v2 (needs 8) but may crash |
+| **DASv4** | 20+ | 20+ | ✅ Yes - D2as_v4 (needs 8) BEST! |
+
+### **Best Choice: Standard_D2as_v4**
+
+**If DASv4 shows 20 vCPUs available in portal:**
+
+```yaml
+# Update deployment.yml and deployment-green.yml to:
+instance_type: Standard_D2as_v4  # 2 vCPUs, 8 GB RAM
+
+Why:
+✅ 2 cores from Azure ML docs
+✅ Blue + Green = 8 vCPUs total (with reservation)
+✅ DASv4 has 20 vCPU limit (plenty of room!)
+✅ AMD-based (different from Intel, good performance)
+✅ Cost: ~$0.10/hour per deployment
+```
+
+**Quota check:**
+```
+Blue: 2 + 2 reserved = 4 vCPUs
+Green: 2 + 2 reserved = 4 vCPUs
+Total: 8 vCPUs ≤ 20 DASv4 limit ✅
+```
+
+---
+
+## 📋 Your Checklist
+
+**Before deploying blue-green:**
+
+1. ☐ Check Azure Portal quotas (South India)
+2. ☐ Find family with limit ≥ 12 vCPUs
+3. ☐ Go to [Azure ML VM SKU docs](https://learn.microsoft.com/en-us/azure/machine-learning/reference-managed-online-endpoints-vm-sku-list?view=azureml-api-2)
+4. ☐ Pick 2-core or 4-core VM from that family
+5. ☐ Calculate: cores × 2 × 2 ≤ family limit?
+6. ☐ Update deployment.yml and deployment-green.yml
+7. ☐ Deploy!
+
+---
+
+## 🔍 Verify DASv4 Quota
+
+**Run this command:**
+```bash
 az vm list-usage --location southindia \
-  --query "[?contains(name.value, 'Total')]" \
+  --query "[?contains(name.value, 'DASv4')]" \
   -o table
 ```
 
-**Look for:** `Total Cluster Dedicated Regional vCPUs: X/16`
-
-```bash
-# 2. Check specific family quota
-az vm list-usage --location southindia \
-  --query "[?contains(name.value, 'FSv2') || contains(name.value, 'ESv3')]" \
-  -o table
+**If it shows:**
+```
+Standard DASv4 Family vCPUs: 0/20
 ```
 
-**Look for:**
-- `Standard FSv2 Family vCPUs: 0/10`
-- `Standard ESv3 Family vCPUs: 0/10`
-
-```bash
-# 3. Check existing deployments
-az ml online-deployment list \
-  --endpoint-name diabetes-prediction-endpoint \
-  --resource-group todozi-data-science-rg \
-  --workspace-name todozi-ml-ws
-```
-
----
-
-## 💡 Quick Reference Table
-
-### **Instance Type Comparison:**
-
-| Instance | vCPUs | RAM | Cost/Hour | Quota Impact | Best For |
-|----------|-------|-----|-----------|--------------|----------|
-| **F8s_v2** | 8 | 16 GB | $0.34 | 16 vCPUs total | Single deployment only |
-| **F4s_v2** | 4 | 8 GB | $0.17 | 8 vCPUs total | ⚠️ May crash (too small) |
-| **E4s_v3** | 4 | 32 GB | $0.20 | 8 vCPUs total | Blue-Green (balanced) |
-| **E2s_v3** | 2 | 16 GB | $0.13 | 4 vCPUs total | Blue-Green (budget) |
-
-### **Blue-Green Cost Comparison:**
-
-| Instance | Blue Cost | Green Cost | Total | Quota Used |
-|----------|-----------|------------|-------|------------|
-| **E2s_v3** | $0.13/hr | $0.13/hr | $0.26/hr | 8 vCPUs |
-| **E4s_v3** | $0.20/hr | $0.20/hr | $0.40/hr | 16 vCPUs |
-| **F8s_v2** | $0.34/hr | $0.34/hr | $0.68/hr | ❌ 32 vCPUs (over limit!) |
-
----
-
-## 🚀 Recommended Actions
-
-### **Right Now (Testing Blue Only):**
+**Then use:**
 ```yaml
-# Keep current setup - it works!
-instance_type: Standard_F8s_v2
+instance_type: Standard_D2as_v4
 ```
 
-### **When Ready for Blue-Green:**
-
-**Step 1: Delete current blue deployment**
-```bash
-az ml online-deployment delete \
-  --name diabetes-deploy-blue \
-  --endpoint-name diabetes-prediction-endpoint \
-  --resource-group todozi-data-science-rg \
-  --workspace-name todozi-ml-ws --yes
+**If it shows:**
+```
+Standard DASv4 Family vCPUs: 0/40
 ```
 
-**Step 2: Update both YAML files**
+**Even better! You can use:**
 ```yaml
-# deployment.yml and deployment-green.yml
-instance_type: Standard_E2s_v3  # Change from F8s_v2
-instance_count: 1
-```
-
-**Step 3: Deploy blue, then green**
-```
-GitHub Actions → Deploy Model → Select: blue
-GitHub Actions → Deploy Model → Select: green
-```
-
-**Step 4: Manage traffic locally**
-```powershell
-.\deployment\manage-traffic.ps1 blue-90
+instance_type: Standard_D4as_v4  # More powerful (4 vCPUs)
 ```
 
 ---
 
-## ⚠️ Common Mistakes
+## ⚠️ Key Points
 
-### **Mistake: Thinking Family Limit Includes Reservation**
+1. **Family Limit** (from portal) = How many vCPUs that VM family can use
+2. **numberOfCores** (from Azure ML docs) = How many vCPUs ONE instance has
+3. **Reservation** = Azure doubles your quota usage (safety assumption: 100%)
+4. **Blue-Green** = Need quota for TWO deployments simultaneously
 
+**Simple rule:**
 ```
-❌ WRONG:
-   "FSv2 limit is 10, F8s_v2 uses 8, reservation 8 = 16 total"
-   "16 > 10, so it won't work!"
-
-✅ CORRECT:
-   Family limit (10): Counts ACTUAL vCPUs only (8) ✅
-   Total Regional (16): Counts ACTUAL + RESERVED (16) ✅
-   Both checks pass!
-```
-
-### **Mistake: Forgetting Training Cluster**
-
-```
-❌ WRONG:
-   "My training uses 2 vCPUs from 16 total"
-   "So I have 14 vCPUs for deployments"
-   "F8s_v2 needs 16, so it won't work!"
-
-✅ CORRECT:
-   Training quota: Separate from deployment quota
-   Deployment quota: Full 16 vCPUs available
-   F8s_v2 with reservation: Exactly 16 ✅
+Find family with limit ≥ 12
+Pick 2-core VM from that family
+Deploy blue + green
 ```
 
 ---
 
-## 📝 Summary
+## 📝 What to Do Now
 
-**Simple Rule:**
-numberOfCores = What the VM has (fixed, same for everyone)
-Limit = How many vCPUs you can use from that family (yours specifically)
-Check both:
-1. Azure ML docs → Find numberOfCores for the VM
-2. Run **az vm list-usage** → Find your Limit for that family
-3. Calculate: (numberOfCores + reservation) ≤ Limit?
-For E2s_v3: (2 + 2) = 4 ≤ 6 ✅ It fits!
-
-**The Simple Version:**
-
-1. **Family limits** count actual vCPUs (8, 4, 2)
-2. **Total Regional limit** counts actual + reserved (16, 8, 4)
-3. **Training cluster quota** is separate from deployment quota
-4. **Azure reserves ~100% extra** for most VM types
-
-**For Your Blue-Green Future:**
-- Use **Standard_E2s_v3** (2 vCPUs, 16 GB RAM)
-- Total quota needed: 8 vCPUs for both deployments
-- Well within your 16 vCPU limit!
+1. **Check DASv4 quota** (run command above or check portal)
+2. **If DASv4 ≥ 20**: Update YAMLs to `Standard_D2as_v4`
+3. **If DASv4 < 12**: Request quota increase for ESv3 (6 → 12)
+4. **Deploy**: GitHub Actions → blue, then green
 
 ---
 
 **Last Updated**: 2025-10-10  
-**Key Insight**: Family limits ≠ Total Regional limits. They count quota differently!
+**Simple Process**: Portal quota → Azure ML docs → Calculate → Deploy!
