@@ -29,8 +29,6 @@ az ml batch-endpoint list --resource-group {RESOURCE_GROUP} --workspace-name {WO
 
 ## Quota Management
 
-### Check VM usage (FSv2)
-az vm list-usage --location {LOCATION} --query "[?contains(name.value, 'FSv2')]" -o table
+**Note:** Azure CLI quota commands don't show current usage. Use Azure Portal instead:
 
-### Check general quota usage
-az vm list-usage --location {LOCATION} --query "[?contains(name.value, 'Total') || contains(name.value, 'Cluster') || contains(name.value, 'Regional')]" -o table
+**Azure Portal:** Subscriptions → Your subscription → Usage + quotas → Filter by Microsoft.MachineLearningServices
