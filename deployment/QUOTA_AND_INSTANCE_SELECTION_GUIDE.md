@@ -9,11 +9,6 @@
 2. Filter: **Provider** = `Microsoft.MachineLearningServices`, **Location** = `South India`
 3. Look at all the quota limits
 
-**Or via Command Line:**
-```bash
-az vm list-usage --location southindia -o table
-```
-
 **What to look for:**
 
 | Quota Name | Usage/Limit | What This Means |
@@ -78,13 +73,13 @@ Pick a VM where: Quota needed ≤ Family limit
 
 | Family | Your Limit | Available | Can Fit Blue-Green? |
 |--------|------------|-----------|---------------------|
-| **ESv3** | 6 | 2 (4 used) | ❌ No - E2s_v3 needs 8 total |
-| **FSv2** | 10 | 10 | ✅ Yes - F4s_v2 (needs 8) but may crash |
-| **DASv4** | 20+ | 20+ | ✅ Yes - D2as_v4 (needs 8) BEST! |
+| **ESv3** | 6 | 6 | ❌ No - E2s_v3 needs 8 total |
+| **FSv2** | 16 | 16 | ✅ Yes - F4s_v2 (needs 8) but may crash |
+| **DASv4** | 10 | 10 | ✅ Yes - D2as_v4 (needs 8) BEST! |
 
 ### **Best Choice: Standard_D2as_v4**
 
-**If DASv4 shows 20 vCPUs available in portal:**
+**DASv4 shows 10 vCPUs available in your subscription:**
 
 ```yaml
 # Update deployment.yml and deployment-green.yml to:
@@ -93,7 +88,7 @@ instance_type: Standard_D2as_v4  # 2 vCPUs, 8 GB RAM
 Why:
 ✅ 2 cores from Azure ML docs
 ✅ Blue + Green = 8 vCPUs total (with reservation)
-✅ DASv4 has 20 vCPU limit (plenty of room!)
+✅ DASv4 has 10 vCPU limit (fits perfectly!)
 ✅ AMD-based (different from Intel, good performance)
 ✅ Cost: ~$0.10/hour per deployment
 ```
@@ -102,7 +97,7 @@ Why:
 ```
 Blue: 2 + 2 reserved = 4 vCPUs
 Green: 2 + 2 reserved = 4 vCPUs
-Total: 8 vCPUs ≤ 20 DASv4 limit ✅
+Total: 8 vCPUs ≤ 10 DASv4 limit ✅
 ```
 
 ---
@@ -111,7 +106,7 @@ Total: 8 vCPUs ≤ 20 DASv4 limit ✅
 
 **Before deploying blue-green:**
 
-1. ☐ Check Azure Portal quotas (South India)
+1. ☐ Check Azure Portal quotas (South India) - Filter by Microsoft.MachineLearningServices
 2. ☐ Find family with limit ≥ 12 vCPUs
 3. ☐ Go to [Azure ML VM SKU docs](https://learn.microsoft.com/en-us/azure/machine-learning/reference-managed-online-endpoints-vm-sku-list?view=azureml-api-2)
 4. ☐ Pick 2-core or 4-core VM from that family
@@ -121,33 +116,31 @@ Total: 8 vCPUs ≤ 20 DASv4 limit ✅
 
 ---
 
-## 🔍 Verify DASv4 Quota
+## 🔍 Check Your Quota in Azure Portal
 
-**Run this command:**
-```bash
-az vm list-usage --location southindia \
-  --query "[?contains(name.value, 'DASv4')]" \
-  -o table
+**Go to:** Azure Portal → **Subscriptions** → Your subscription → **Usage + quotas**
+
+**Filter by:**
+- **Provider:** `Microsoft.MachineLearningServices`
+- **Location:** `South India`
+
+**Look for families with high limits:**
+```
+✅ Standard DASv4 Family vCPUs: 0/10    (Good for blue-green!)
+✅ Standard FSv2 Family vCPUs: 0/16    (Good for blue-green!)
+❌ Standard ESv3 Family vCPUs: 0/6     (Not enough for blue-green)
 ```
 
-**If it shows:**
-```
-Standard DASv4 Family vCPUs: 0/20
-```
-
-**Then use:**
+**If DASv4 shows 10 vCPUs available:**
 ```yaml
-instance_type: Standard_D2as_v4
+instance_type: Standard_D2as_v4  # 2 vCPUs - Perfect for blue-green!
 ```
 
-**If it shows:**
+**Calculation:**
 ```
-Standard DASv4 Family vCPUs: 0/40
-```
-
-**Even better! You can use:**
-```yaml
-instance_type: Standard_D4as_v4  # More powerful (4 vCPUs)
+Blue: 2 + 2 reserved = 4 vCPUs
+Green: 2 + 2 reserved = 4 vCPUs
+Total: 8 vCPUs ≤ 10 DASv4 limit ✅
 ```
 
 ---
@@ -165,15 +158,6 @@ Find family with limit ≥ 12
 Pick 2-core VM from that family
 Deploy blue + green
 ```
-
----
-
-## 📝 What to Do Now
-
-1. **Check DASv4 quota** (run command above or check portal)
-2. **If DASv4 ≥ 20**: Update YAMLs to `Standard_D2as_v4`
-3. **If DASv4 < 12**: Request quota increase for ESv3 (6 → 12)
-4. **Deploy**: GitHub Actions → blue, then green
 
 ---
 

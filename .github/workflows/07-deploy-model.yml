@@ -241,14 +241,51 @@ jobs:
           fi
         fi
         
+        # Alternative: Try JSON format if string format fails
+        if [ "${{ github.event.inputs.deployment_name }}" = "blue" ]; then
+          if [ "$GREEN_EXISTS" = true ]; then
+            TRAFFIC_JSON='{"diabetes-deploy-blue": 100, "diabetes-deploy-green": 0}'
+          else
+            TRAFFIC_JSON='{"diabetes-deploy-blue": 100}'
+          fi
+        else
+          if [ "$BLUE_EXISTS" = true ]; then
+            TRAFFIC_JSON='{"diabetes-deploy-blue": 100, "diabetes-deploy-green": 0}'
+          else
+            TRAFFIC_JSON='{"diabetes-deploy-green": 100}'
+          fi
+        fi
+        
         # Apply traffic allocation
-        az ml online-endpoint update \
+        echo "🔧 Debug: TRAFFIC_STRING = '$TRAFFIC_STRING'"
+        echo "🔧 Debug: TRAFFIC_JSON = '$TRAFFIC_JSON'"
+        echo "🔧 Debug: Running az ml online-endpoint update..."
+        
+        # Try string format first
+        if az ml online-endpoint update \
           --name diabetes-prediction-endpoint \
           --traffic "$TRAFFIC_STRING" \
           --resource-group todozi-data-science-rg \
-          --workspace-name todozi-ml-ws
-        
-        echo "✅ Traffic allocation updated: $TRAFFIC_STRING"
+          --workspace-name todozi-ml-ws; then
+          echo "✅ Traffic allocation updated (string format): $TRAFFIC_STRING"
+        else
+          echo "❌ String format failed. Trying JSON format..."
+          if az ml online-endpoint update \
+            --name diabetes-prediction-endpoint \
+            --traffic "$TRAFFIC_JSON" \
+            --resource-group todozi-data-science-rg \
+            --workspace-name todozi-ml-ws; then
+            echo "✅ Traffic allocation updated (JSON format): $TRAFFIC_JSON"
+          else
+            echo "❌ Both traffic formats failed. Checking endpoint status..."
+            az ml online-endpoint show \
+              --name diabetes-prediction-endpoint \
+              --resource-group todozi-data-science-rg \
+              --workspace-name todozi-ml-ws \
+              --query "{Name:name, Status:provisioning_state, Traffic:traffic}"
+            exit 1
+          fi
+        fi
         
         if [ "${{ github.event.inputs.deployment_name }}" = "green" ] && [ "$BLUE_EXISTS" = true ]; then
           echo ""
