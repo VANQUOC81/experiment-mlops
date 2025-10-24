@@ -7,7 +7,8 @@ on:
 jobs:
   experiment:
     name: Train Model - Development
-    if: ${{ false }}
+    # remove comment to disable below steps for testing
+    #if: ${{ false }}
     runs-on: ubuntu-latest
     environment: development
     steps:
@@ -83,7 +84,8 @@ jobs:
 
   production:
     name: Train Model - Production
-    if: ${{ false }}  # DISABLED FOR TESTING
+    # remove comment to disable below steps for testing
+    #if: ${{ false }}
     runs-on: ubuntu-latest
     environment: production
     needs: experiment
@@ -191,7 +193,7 @@ jobs:
         echo ""
         echo "🎯 Next Steps:"
         echo "   1. Go to Azure ML Studio → Models to see your registered model"
-        echo "   2. Run the '07-deploy-model' workflow to deploy this model to an endpoint"
+        echo "   2. Run the '03-deploy-model' workflow to deploy this model to an endpoint"
         
         # Save the model version for potential future steps
         echo "model_version=$model_version" >> $GITHUB_OUTPUT

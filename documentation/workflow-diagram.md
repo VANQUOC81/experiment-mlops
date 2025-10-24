@@ -27,7 +27,7 @@ graph TD
     
     P --> Q[Manual: Deploy Model Workflow]
     Q --> R[Select: Blue or Green Deployment?]
-    R -->|Blue| S[Use deployment.yml]
+    R -->|Blue| S[Use deployment-blue.yml]
     R -->|Green| T[Use deployment-green.yml]
     S --> U[Verify Model Exists]
     T --> U
@@ -128,7 +128,7 @@ graph TD
 ### Stage 2: Deployment Pipeline
 1. **Manual Deployment Trigger**: Run from GitHub Actions
    - Select: Blue or Green deployment
-   - Blue → Uses `src/deployment.yml` → Creates `diabetes-deploy-blue` (100% traffic)
+   - Blue → Uses `src/deployment-blue.yml` → Creates `diabetes-deploy-blue` (100% traffic)
    - Green → Uses `src/deployment-green.yml` → Creates `diabetes-deploy-green` (0% traffic)
 
 2. **Deployment Process**:
@@ -165,8 +165,8 @@ graph TD
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| `06-train-and-deploy.yml` | Push to main | Train dev → Train prod → Register model |
-| `07-deploy-model.yml` | Manual | Deploy registered model to endpoint |
+| `02-train-and-deploy.yml` | Push to main | Train dev → Train prod → Register model |
+| `03-deploy-model.yml` | Manual | Deploy registered model to endpoint |
 
 ## Azure ML Job Status
 

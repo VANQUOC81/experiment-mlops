@@ -7,17 +7,17 @@
 # 3. Deploys the registered model to the endpoint
 # 4. Tests the endpoint with sample data
 #
-# IMPORTANT: Model registration happens in the training workflow (06-train-and-deploy.yml)
+# IMPORTANT: Model registration happens in the training workflow (02-train-and-deploy.yml)
 # This deployment workflow assumes the model is already registered and just deploys it.
 #
 # Prerequisites:
-# - Model must be registered by training workflow (06-train-and-deploy.yml)
+# - Model must be registered by training workflow (02-train-and-deploy.yml)
 # - Azure credentials configured as GitHub secrets
 # - Endpoint and deployment YAML files in src/ directory
 #
 # Workflow separation:
-# - 06-train-and-deploy.yml: Train model + Register model
-# - 07-deploy-model.yml: Deploy registered model + Test endpoint
+# - 02-train-and-deploy.yml: Train model + Register model
+# - 03-deploy-model.yml: Deploy registered model + Test endpoint
 # ============================================================
 
 name: Deploy Model to Endpoint
@@ -74,7 +74,7 @@ jobs:
     # ========================================
     # STEP 3: Verify model is already registered
     # ========================================
-    # NOTE: Model registration happens automatically in the training workflow (06-train-and-deploy.yml)
+    # NOTE: Model registration happens automatically in the training workflow (02-train-and-deploy.yml)
     # This deployment workflow assumes the model is already registered and just deploys it
     - name: Verify model is registered
       run: |
@@ -109,7 +109,7 @@ jobs:
         
         echo "✅ Found registered model: diabetes-model (version $model_version)"
         echo ""
-        echo "📝 NOTE: This model was registered by the training workflow (06-train-and-deploy.yml)"
+        echo "📝 NOTE: This model was registered by the training workflow (02-train-and-deploy.yml)"
         echo "   No need to register again - we'll deploy the existing registered model"
         
         # Save for later steps
@@ -162,7 +162,7 @@ jobs:
         if [ "${{ github.event.inputs.deployment_name }}" = "green" ]; then
           DEPLOYMENT_FILE="src/deployment-green.yml"
         else
-          DEPLOYMENT_FILE="src/deployment.yml"
+          DEPLOYMENT_FILE="src/deployment-blue.yml"
         fi
         
         echo "📝 Using deployment file: $DEPLOYMENT_FILE"

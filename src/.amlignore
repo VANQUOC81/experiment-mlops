@@ -13,7 +13,7 @@
 README*
 
 # Deployment configuration files (not needed inside container)
-deployment.yml
+deployment-blue.yml
 deployment-green.yml
 endpoint.yml
 
