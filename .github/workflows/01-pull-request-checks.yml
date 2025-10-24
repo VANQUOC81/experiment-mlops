@@ -7,7 +7,8 @@ on:
 jobs:
   code-verification:
     name: Code Verification
-    if: ${{ false }}
+    # remove comment to disable below steps for testing
+    #if: ${{ false }}
     runs-on: ubuntu-latest
     steps:
     - name: Check out repo

@@ -1,7 +1,7 @@
 # ============================================================
 # GREEN DEPLOYMENT CONFIGURATION
 # ============================================================
-# This is identical to deployment.yml but with "green" naming
+# This is identical to deployment-blue.yml but with "green" naming
 # Used for blue-green deployment strategy
 # ============================================================
 

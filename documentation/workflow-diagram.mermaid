@@ -20,7 +20,7 @@ graph TD
     
     P --> Q[Manual: Deploy Model Workflow]
     Q --> R[Select: Blue or Green Deployment?]
-    R -->|Blue| S[Use deployment.yml]
+    R -->|Blue| S[Use deployment-blue.yml]
     R -->|Green| T[Use deployment-green.yml]
     S --> U[Verify Model Exists]
     T --> U

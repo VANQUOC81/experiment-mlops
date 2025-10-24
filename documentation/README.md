@@ -11,9 +11,9 @@ This project demonstrates MLOps practices for training and tracking machine lear
 experiment-mlops/
 ├── .github/
 │   └── workflows/
-│       ├── 02-manual-trigger-job-dev.yml  # Manual GitHub Actions trigger
-│       ├── 05-pull-request-checks.yml # PR quality checks (linting, tests)
-│       └── 06-train-and-deploy.yml    # Automated CI/CD ML pipeline
+│       ├── 00-manual-trigger-job-dev.yml  # Manual GitHub Actions trigger
+│       ├── 01-pull-request-checks.yml # PR quality checks (linting, tests)
+│       └── 02-train-and-deploy.yml    # Automated CI/CD ML pipeline
 ├── src/
 │   ├── model/
 │   │   └── train.py                   # Main training script with MLflow tracking
@@ -136,12 +136,12 @@ Complete automated CI/CD pipeline with environment separation and approval workf
 
 This project implements a comprehensive MLOps pipeline with two complementary GitHub Actions workflows:
 
-### 🔍 **Workflow 1: Pull Request Code Verification** (`05-pull-request-checks.yml`)
+### 🔍 **Workflow 1: Pull Request Code Verification** (`01-pull-request-checks.yml`)
 - **Trigger**: Pull requests to `main` branch
 - **Purpose**: Quality gate before code merges
 - **Actions**: Code linting, unit testing, dependency verification
 
-### 🚀 **Workflow 2: Train and Deploy Pipeline** (`06-train-and-deploy.yml`)
+### 🚀 **Workflow 2: Train and Deploy Pipeline** (`02-train-and-deploy.yml`)
 - **Trigger**: Pushes to `main` branch (after PR merge)
 - **Purpose**: Automated ML training with environment separation
 - **Actions**: Development training → Production training (with approval)
@@ -153,7 +153,7 @@ This project implements a comprehensive MLOps pipeline with two complementary Gi
 graph TD
     A[Developer creates feature branch] --> B[Code changes + commit]
     B --> C[Create Pull Request to main]
-    C --> D[05-pull-request-checks.yml triggers]
+    C --> D[01-pull-request-checks.yml triggers]
     D --> E[Code Verification: Linting + Tests]
     E --> F{Tests Pass?}
     F -->|❌ Fail| G[Fix issues, push changes]
@@ -173,7 +173,7 @@ graph TD
 
 2. **Create Pull Request**: Developer creates PR to `main` branch
 
-3. **Automated Quality Checks** (`05-pull-request-checks.yml`):
+3. **Automated Quality Checks** (`01-pull-request-checks.yml`):
    - ✅ **Code Linting**: `flake8` checks code style
    - ✅ **Unit Tests**: `pytest` validates functionality
    - ✅ **Dependency Check**: Ensures requirements.txt compatibility
@@ -184,7 +184,7 @@ graph TD
 ### **Phase 2: Automated ML Training Pipeline**
 ```mermaid
 graph TD
-    H[Code merged to main] --> I[06-train-and-deploy.yml triggers]
+    H[Code merged to main] --> I[02-train-and-deploy.yml triggers]
     I --> J[Development Job Starts]
     J --> K[Submit Azure ML Dev Job]
     K --> L[Poll Azure ML Status Every 30s]
@@ -211,7 +211,7 @@ graph TD
 
 **Step-by-step:**
 
-5. **Automatic Trigger**: Push to `main` triggers `06-train-and-deploy.yml`
+5. **Automatic Trigger**: Push to `main` triggers `02-train-and-deploy.yml`
 
 6. **Development Training** (Automatic):
    - **Environment**: `development` (no approval needed)
@@ -269,7 +269,7 @@ graph TD
 
 2. **Pull Request**:
    - Create PR to `main`
-   - `05-pull-request-checks.yml` runs automatically
+   - `01-pull-request-checks.yml` runs automatically
    - Code passes linting and unit tests ✅
    - PR gets reviewed and approved
 
@@ -280,7 +280,7 @@ graph TD
    ```
 
 4. **Automated Training**:
-   - `06-train-and-deploy.yml` triggers automatically
+   - `02-train-and-deploy.yml` triggers automatically
    - **Development job**: Trains with small dataset, validates improvement
    - **Success**: Development model shows better accuracy ✅
    - **Production approval**: Team receives notification for approval

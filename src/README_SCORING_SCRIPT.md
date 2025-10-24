@@ -203,7 +203,7 @@ Where: `0` = No diabetes, `1` = Has diabetes
 
 ## 🔗 Related Files
 
-- `deployment.yml` - References main.py in code_configuration
+- `deployment-blue.yml` - References main.py in code_configuration
 - `deployment-green.yml` - References main.py for green deployment
 - `train.py` - Creates the model that main.py loads
 - `../deployment/test_endpoint.py` - Tests the deployed endpoint

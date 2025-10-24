@@ -8,7 +8,7 @@ GitHub Actions → Deploy Model to Endpoint → Select: blue or green
 ```
 
 **What happens when you select:**
-- **Select "blue"** → Uses `src/deployment.yml` → Creates `diabetes-deploy-blue`
+- **Select "blue"** → Uses `src/deployment-blue.yml` → Creates `diabetes-deploy-blue`
 - **Select "green"** → Uses `src/deployment-green.yml` → Creates `diabetes-deploy-green`
 
 ### **Manage Traffic (Run LOCALLY):**
@@ -30,14 +30,14 @@ python deployment/test_endpoint.py --scoring-uri "..." --primary-key "..."
 ### **Two Deployment Configurations:**
 
 ```
-src/deployment.yml          → Creates: diabetes-deploy-blue
+src/deployment-blue.yml          → Creates: diabetes-deploy-blue
 src/deployment-green.yml    → Creates: diabetes-deploy-green
 ```
 
 ### **Workflow Logic:**
 
 ```
-GitHub Actions Workflow (07-deploy-model.yml)
+GitHub Actions Workflow (03-deploy-model.yml)
                     ↓
            User selects blue or green?
                     ↓
@@ -45,7 +45,7 @@ GitHub Actions Workflow (07-deploy-model.yml)
         │                       │
     Select "blue"           Select "green"
         ↓                       ↓
-Read src/deployment.yml    Read src/deployment-green.yml
+Read src/deployment-blue.yml    Read src/deployment-green.yml
         ↓                       ↓
 Create/Update              Create/Update
 diabetes-deploy-blue       diabetes-deploy-green
@@ -59,7 +59,7 @@ Set traffic: 100%          Set traffic: 0%
 
 ### **Both Files Contain:**
 
-| Setting | deployment.yml (Blue) | deployment-green.yml (Green) |
+| Setting | deployment-blue.yml (Blue) | deployment-green.yml (Green) |
 |---------|----------------------|------------------------------|
 | **Name** | `diabetes-deploy-blue` | `diabetes-deploy-green` |
 | **Endpoint** | `diabetes-prediction-endpoint` | `diabetes-prediction-endpoint` (SAME) |
@@ -77,7 +77,7 @@ Set traffic: 100%          Set traffic: 0%
 
 **Example - Different Model Versions:**
 ```yaml
-# deployment.yml (stable)
+# deployment-blue.yml (stable)
 model: azureml:diabetes-model:2  # Pin to version 2
 
 # deployment-green.yml (testing new version)

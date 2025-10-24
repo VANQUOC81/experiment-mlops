@@ -82,7 +82,7 @@ Pick a VM where: Quota needed ≤ Family limit
 **DASv4 shows 10 vCPUs available in your subscription:**
 
 ```yaml
-# Update deployment.yml and deployment-green.yml to:
+# Update deployment-blue.yml and deployment-green.yml to:
 instance_type: Standard_D2as_v4  # 2 vCPUs, 8 GB RAM
 
 Why:
@@ -111,7 +111,7 @@ Total: 8 vCPUs ≤ 10 DASv4 limit ✅
 3. ☐ Go to [Azure ML VM SKU docs](https://learn.microsoft.com/en-us/azure/machine-learning/reference-managed-online-endpoints-vm-sku-list?view=azureml-api-2)
 4. ☐ Pick 2-core or 4-core VM from that family
 5. ☐ Calculate: cores × 2 × 2 ≤ family limit?
-6. ☐ Update deployment.yml and deployment-green.yml
+6. ☐ Update deployment-blue.yml and deployment-green.yml
 7. ☐ Deploy!
 
 ---
