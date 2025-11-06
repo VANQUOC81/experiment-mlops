@@ -13,7 +13,7 @@
 - `deployment/manage-traffic.ps1` - Traffic management script
 
 ### Workflows
-- `.github/workflows/02-train-and-deploy.yml` - **Training + Model Registration**: Trains model and registers it in Azure ML
+- `.github/workflows/02-train-and-register-prod-model.yml` - **Training + Model Registration**: Trains model and registers it in Azure ML
 - `.github/workflows/03-deploy-model.yml` - **Deployment**: Deploys blue or green deployment
 
 ### How Deployment Files Work
@@ -122,7 +122,7 @@ Endpoints → diabetes-prediction-endpoint → Test tab → Paste JSON from samp
 
 | Problem | Solution |
 |---------|----------|
-| "Model not found in registry" | Run the training workflow first (02-train-and-deploy.yml) - it registers the model |
+| "Model not found in registry" | Run the training workflow first (02-train-and-register-prod-model.yml) - it registers the model |
 | 401 Unauthorized | Verify your API key from Azure ML Studio → Consume tab |
 | 500 Internal Error | Check logs: Azure ML Studio → Endpoints → Logs tab |
 | Deployment takes long | Normal! First deployment takes 5-10 minutes |
@@ -133,7 +133,7 @@ Endpoints → diabetes-prediction-endpoint → Test tab → Paste JSON from samp
 
 | Workflow | Purpose | What it does |
 |----------|---------|--------------|
-| `02-train-and-deploy.yml` | **Training Pipeline** | 1. Train model on dev data<br/>2. Train model on prod data<br/>3. **Register model** in Azure ML |
+| `02-train-and-register-prod-model.yml` | **Training Pipeline** | 1. Train model on dev data<br/>2. Train model on prod data<br/>3. **Register model** in Azure ML |
 | `03-deploy-model.yml` | **Deployment Pipeline** | 1. Verify model is registered<br/>2. Create endpoint<br/>3. Deploy model<br/>4. Test endpoint |
 
 **Benefits of separation:**

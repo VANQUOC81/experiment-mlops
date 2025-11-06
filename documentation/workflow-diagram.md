@@ -165,7 +165,7 @@ graph TD
 
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
-| `02-train-and-deploy.yml` | Push to main | Train dev → Train prod → Register model |
+| `02-train-and-register-prod-model.yml` | Push to main | Train dev → Train prod → Register model |
 | `03-deploy-model.yml` | Manual | Deploy registered model to endpoint |
 
 ## Azure ML Job Status

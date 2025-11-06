@@ -13,7 +13,7 @@ experiment-mlops/
 │   └── workflows/
 │       ├── 00-manual-trigger-job-dev.yml  # Manual GitHub Actions trigger
 │       ├── 01-pull-request-checks.yml # PR quality checks (linting, tests)
-│       └── 02-train-and-deploy.yml    # Automated CI/CD ML pipeline
+│       └── 02-train-and-register-prod-model.yml    # Automated CI/CD ML pipeline
 ├── src/
 │   ├── model/
 │   │   └── train.py                   # Main training script with MLflow tracking
@@ -141,7 +141,7 @@ This project implements a comprehensive MLOps pipeline with two complementary Gi
 - **Purpose**: Quality gate before code merges
 - **Actions**: Code linting, unit testing, dependency verification
 
-### 🚀 **Workflow 2: Train and Deploy Pipeline** (`02-train-and-deploy.yml`)
+### 🚀 **Workflow 2: Train and Register Prod Model Pipeline** (`02-train-and-register-prod-model.yml`)
 - **Trigger**: Pushes to `main` branch (after PR merge)
 - **Purpose**: Automated ML training with environment separation
 - **Actions**: Development training → Production training (with approval)
@@ -184,7 +184,7 @@ graph TD
 ### **Phase 2: Automated ML Training Pipeline**
 ```mermaid
 graph TD
-    H[Code merged to main] --> I[02-train-and-deploy.yml triggers]
+    H[Code merged to main] --> I[02-train-and-register-prod-model.yml triggers]
     I --> J[Development Job Starts]
     J --> K[Submit Azure ML Dev Job]
     K --> L[Poll Azure ML Status Every 30s]
@@ -211,7 +211,7 @@ graph TD
 
 **Step-by-step:**
 
-5. **Automatic Trigger**: Push to `main` triggers `02-train-and-deploy.yml`
+5. **Automatic Trigger**: Push to `main` triggers `02-train-and-register-prod-model.yml`
 
 6. **Development Training** (Automatic):
    - **Environment**: `development` (no approval needed)
@@ -280,7 +280,7 @@ graph TD
    ```
 
 4. **Automated Training**:
-   - `02-train-and-deploy.yml` triggers automatically
+   - `02-train-and-register-prod-model.yml` triggers automatically
    - **Development job**: Trains with small dataset, validates improvement
    - **Success**: Development model shows better accuracy ✅
    - **Production approval**: Team receives notification for approval
